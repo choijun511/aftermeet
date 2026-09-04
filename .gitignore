@@ -1,0 +1,23 @@
+# 依赖与构建产物
+node_modules
+out
+dist
+*.log
+*.tsbuildinfo
+
+# 密钥与本地配置(绝不上传)
+.env
+.env.local
+.claude
+
+# 编译出的原生 helper(由 native/*.swift 经 npm postinstall 生成)
+resources/bin/
+
+# 大体积模型 / 运行时(用户自行下载,见 README)
+resources/models/*.bin
+resources/models/sherpa-onnx-*/
+resources/whisper/
+resources/pyenv/
+
+# 系统
+.DS_Store

@@ -1,0 +1,36 @@
+{
+  "name": "aftermeet",
+  "version": "0.1.0",
+  "description": "会后秘书 AfterMeet — 本地系统音频实时转写 + 会议纪要 + 会后总结",
+  "author": "choijun511",
+  "license": "MIT",
+  "main": "./out/main/index.js",
+  "type": "module",
+  "scripts": {
+    "build:helper": "bash native/build.sh",
+    "bundle:whisper": "bash native/bundle-whisper.sh",
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "dist:mac": "npm run build:helper && npm run bundle:whisper && electron-vite build && electron-builder --mac",
+    "postinstall": "npm run build:helper || true"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
+    "marked": "^18.0.5",
+    "opencc-js": "^1.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11"
+  }
+}

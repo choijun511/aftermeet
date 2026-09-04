@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+body { background:#abaeb7; font-family:"Plus Jakarta Sans","Noto Sans SC",system-ui,sans-serif; color:#17181c; }
+a { color:#17181c; }
+a:hover { color:#e0604d; }
+@keyframes rec-pulse { 0%,100% { opacity:1; } 50% { opacity:.35; } }
+</style>
+</helmet>
+<section style="display:flex; flex-wrap:wrap; gap:80px; align-items:flex-start; padding:88px 72px;">
+
+  <!-- 1a 首页 · 待命 -->
+  <div id="1a" data-screen-label="1a 首页 · 待命" style="flex:none; position:relative; width:1200px;">
+    <div style="position:absolute; top:-40px; left:0; background:#17181c; color:#fff; font-weight:700; font-size:12px; padding:6px 14px; border-radius:999px;">1A · 首页 — 待命</div>
+    <div style="background:#eef0f4; border-radius:24px; box-shadow:0 24px 60px rgba(20,24,40,.25); height:780px; display:flex; flex-direction:column; overflow:hidden;">
+      <div style="height:44px; display:flex; align-items:center; gap:8px; padding:0 20px; flex:none;">
+        <span style="width:12px; height:12px; border-radius:50%; background:#f2605a;"></span>
+        <span style="width:12px; height:12px; border-radius:50%; background:#f5bd4f;"></span>
+        <span style="width:12px; height:12px; border-radius:50%; background:#61c454;"></span>
+      </div>
+      <div style="display:flex; align-items:center; gap:20px; padding:6px 32px 16px; flex:none;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="width:30px; height:30px; border-radius:10px; background:#17181c; color:#fff; display:flex; align-items:center; justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg></span>
+          <span style="font-weight:800; font-size:17px;">AfterMeet</span>
+        </div>
+        <nav style="flex:1; display:flex; justify-content:center; gap:6px;">
+          <span style="background:#17181c; color:#fff; font-weight:700; font-size:13.5px; padding:9px 20px; border-radius:999px;">首页</span>
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer;" style-hover="background:#e2e5eb">会议库</span>
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer; display:flex; align-items:center; gap:6px;" style-hover="background:#e2e5eb">待办 <span style="background:#e0604d; color:#fff; font-size:10.5px; font-weight:800; padding:1px 7px; border-radius:999px;">6</span></span>
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer;" style-hover="background:#e2e5eb">设置</span>
+        </nav>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e5e8ee; border-radius:999px; padding:8px 14px; font-size:12.5px; color:#8a8f9c;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg> 搜索 <span style="font-size:10.5px; background:#eef0f4; padding:1px 6px; border-radius:6px;">⌘K</span></span>
+          <button style="display:flex; align-items:center; gap:8px; background:#17181c; color:#fff; border:0; border-radius:999px; padding:10px 20px; font:700 13.5px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#33353c"><span style="color:#e0604d;">●</span> 开始录制</button>
+        </div>
+      </div>
+      <div style="flex:1; min-height:0; display:flex; gap:20px; padding:4px 32px 28px;">
+        <div style="flex:1.45; min-width:0; display:flex; flex-direction:column; gap:20px;">
+          <div style="background:#fff; border-radius:22px; padding:22px 24px; flex:1; min-height:0; display:flex; flex-direction:column; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+              <span style="font-weight:800; font-size:16px;">日程</span>
+              <span style="font-size:12px; color:#8a8f9c;">飞书 · 3 场</span>
+              <span style="flex:1;"></span>
+              <div style="display:flex; align-items:center; gap:2px; background:#eef0f4; border-radius:999px; padding:3px;">
+                <span style="padding:4px 12px; border-radius:999px; font-size:13px; cursor:pointer; color:#5c6270;" style-hover="background:#fff">‹</span>
+                <span style="padding:4px 14px; border-radius:999px; font-size:12px; font-weight:700; background:#fff; box-shadow:0 1px 2px rgba(20,24,40,.08);">今天 · 08-28</span>
+                <span style="padding:4px 12px; border-radius:999px; font-size:13px; cursor:pointer; color:#5c6270;" style-hover="background:#fff">›</span>
+              </div>
+              <span style="width:32px; height:32px; border-radius:50%; background:#eef0f4; display:flex; align-items:center; justify-content:center; font-size:13px; cursor:pointer; color:#5c6270;" style-hover="background:#e2e5eb"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"></path><path d="M21 3v5h-5"></path></svg></span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <div style="display:flex; gap:16px; align-items:center; background:#f5f6f9; border-radius:16px; padding:14px 18px; opacity:.55;">
+                <span style="flex:none; width:92px; font-size:13px; font-variant-numeric:tabular-nums; color:#5c6270;">10:30–11:00</span>
+                <div style="min-width:0; flex:1;"><div style="font-weight:700; font-size:14px;">设计评审 · 定价页</div><div style="font-size:12px; color:#8a8f9c;">已结束 · 已录制并生成纪要</div></div>
+                <a href="#1c" style="font-size:12.5px; font-weight:700; text-decoration:none; background:#fff; border-radius:999px; padding:7px 14px;">看纪要</a>
+              </div>
+              <div style="display:flex; gap:16px; align-items:center; background:#17181c; color:#fff; border-radius:16px; padding:16px 18px;">
+                <span style="flex:none; width:92px; font-size:13px; font-weight:700; font-variant-numeric:tabular-nums;">14:00–15:00</span>
+                <div style="min-width:0; flex:1;"><div style="font-weight:800; font-size:15px;">产品周会</div><div style="font-size:12px; color:#b9bdc9;">30 分钟后开始 · 组织者 王倩 · 视频会议</div></div>
+                <span style="flex:none; width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,.16); color:#fff; font-weight:700; font-size:12.5px; display:flex; align-items:center; justify-content:center;">王</span>
+                <button style="display:flex; align-items:center; gap:7px; background:#e0604d; color:#fff; border:0; border-radius:999px; padding:9px 18px; font:700 13px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#c94f3d">● 录制此会议</button>
+              </div>
+              <div style="display:flex; gap:16px; align-items:center; background:#f5f6f9; border-radius:16px; padding:14px 18px;">
+                <span style="flex:none; width:92px; font-size:13px; font-variant-numeric:tabular-nums; color:#5c6270;">17:00–17:30</span>
+                <div style="min-width:0; flex:1;"><div style="font-weight:700; font-size:14px;">与米真科技对齐交付排期</div><div style="font-size:12px; color:#8a8f9c;">待定 · 组织者 陈斐</div></div>
+                <span style="flex:none; width:32px; height:32px; border-radius:50%; background:#e4ecf9; color:#3f66a8; font-weight:700; font-size:12.5px; display:flex; align-items:center; justify-content:center;">陈</span>
+                <button style="background:#fff; color:#17181c; border:1px solid #e5e8ee; border-radius:999px; padding:8px 16px; font:700 12.5px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#eef0f4">录制此会议</button>
+              </div>
+            </div>
+            <div style="font-size:12px; color:#8a8f9c; margin-top:12px;">没连飞书？这里只显示「开始录制」——录制不依赖日历。</div>
+            <div style="margin-top:auto; display:flex; gap:16px; align-items:center; background:#f5f6f9; border-radius:16px; padding:14px 18px;">
+              <div style="min-width:0; flex:1;"><div style="font-weight:700; font-size:14px;">检测到会议自动开始记录</div><div style="font-size:12px; color:#8a8f9c;">麦克风一活跃就自动录，开始与结束都会通知你</div></div>
+              <div style="flex:none; width:46px; height:27px; background:#17181c; border-radius:999px; position:relative; cursor:pointer;"><span style="position:absolute; right:3px; top:3px; width:21px; height:21px; background:#fff; border-radius:50%;"></span></div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:20px;">
+          <div style="background:#fff; border-radius:22px; padding:20px 22px; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+            <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:12px;">
+              <span style="font-weight:800; font-size:15px;">未完成待办</span>
+              <span style="background:#fbe9e5; color:#b23c2b; font-size:11px; font-weight:800; padding:2px 9px; border-radius:999px;">6</span>
+              <span style="flex:1;"></span>
+              <a href="#1e" style="font-size:12px; font-weight:700; color:#5c6270; text-decoration:none;">全部 ›</a>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <div>
+                <a href="#1c" style="font-size:12px; text-decoration:none; color:#8a8f9c;"><strong style="color:#17181c;">产品周会</strong> · 今天 14:00 · 2 项 ›</a>
+                <div style="display:flex; flex-direction:column; gap:7px; margin-top:7px;">
+                  <div style="display:flex; gap:10px; align-items:center;"><span style="flex:none; width:18px; height:18px; border:2px solid #c9cdd6; border-radius:50%;"></span><span style="font-size:13.5px;">运营出涨价公告文案</span></div>
+                  <div style="display:flex; gap:10px; align-items:center;"><span style="flex:none; width:18px; height:18px; border:2px solid #c9cdd6; border-radius:50%;"></span><span style="font-size:13.5px;">配置灰度开关与监控看板</span></div>
+                </div>
+              </div>
+              <div>
+                <a href="#1c" style="font-size:12px; text-decoration:none; color:#8a8f9c;"><strong style="color:#17181c;">增长实验复盘</strong> · 昨天 · 2 项 ›</a>
+                <div style="display:flex; flex-direction:column; gap:7px; margin-top:7px;">
+                  <div style="display:flex; gap:10px; align-items:center;"><span style="flex:none; width:18px; height:18px; border:2px solid #c9cdd6; border-radius:50%;"></span><span style="font-size:13.5px;">下线 B 组实验，归档数据</span></div>
+                  <div style="display:flex; gap:10px; align-items:center;"><span style="flex:none; width:18px; height:18px; border:2px solid #c9cdd6; border-radius:50%;"></span><span style="font-size:13.5px;">重跑注册漏斗周报</span></div>
+                </div>
+              </div>
+              <div>
+                <a href="#1c" style="font-size:12px; text-decoration:none; color:#8a8f9c;"><strong style="color:#17181c;">客户访谈 · 米真科技</strong> · 08-26 · 1 项 ›</a>
+                <div style="display:flex; gap:10px; align-items:center; margin-top:7px;"><span style="flex:none; width:18px; height:18px; border:2px solid #c9cdd6; border-radius:50%;"></span><span style="font-size:13.5px;">给米真发第二轮访谈提纲</span><span style="background:#fbe9e5; color:#b23c2b; font-size:11px; font-weight:700; padding:1px 8px; border-radius:999px;">明天</span></div>
+              </div>
+            </div>
+          </div>
+          <div style="background:#fff; border-radius:22px; padding:20px 22px; flex:1; min-height:0; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+            <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:12px;">
+              <span style="font-weight:800; font-size:15px;">最近会议</span>
+              <span style="flex:1;"></span>
+              <a href="#1d" style="font-size:12px; font-weight:700; color:#5c6270; text-decoration:none;">会议库 ›</a>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <a href="#1c" style="display:flex; gap:12px; align-items:center; padding:9px 12px; margin:0 -12px; border-radius:14px; text-decoration:none; color:inherit;" style-hover="background:#f5f6f9"><div style="min-width:0; flex:1;"><div style="font-weight:700; font-size:13.5px;">产品周会</div><div style="font-size:11.5px; color:#8a8f9c;">今天 14:00 · 42 分</div></div><span style="background:#edeff3; color:#6b7180; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;">生成中…</span></a>
+              <div style="display:flex; gap:12px; align-items:center; padding:9px 0;"><div style="min-width:0; flex:1;"><div style="font-weight:700; font-size:13.5px;">增长实验复盘</div><div style="font-size:11.5px; color:#8a8f9c;">昨天 10:30 · 58 分</div></div><span style="background:#e1f1e8; color:#2e7d54; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;">已生成</span></div>
+              <div style="display:flex; gap:12px; align-items:center; padding:9px 0;"><div style="min-width:0; flex:1;"><div style="font-weight:700; font-size:13.5px;">客户访谈 · 米真科技</div><div style="font-size:11.5px; color:#8a8f9c;">08-26 · 31 分</div></div><span style="background:#fbe9e5; color:#b23c2b; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;">失败 · 重试</span></div>
+            </div>
+            <div style="font-size:11px; color:#8a8f9c; margin-top:10px; white-space:nowrap;">状态：生成中 / 已生成 / 失败 · 重试 / 仅转写（未配 Key）</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1b 录制中 -->
+  <div id="1b" data-screen-label="1b 录制中" style="flex:none; position:relative; width:1200px;">
+    <div style="position:absolute; top:-40px; left:0; background:#17181c; color:#fff; font-weight:700; font-size:12px; padding:6px 14px; border-radius:999px;">1B · 录制中 — 由迷你条进入，可随时切走</div>
+    <div style="background:#eef0f4; border-radius:24px; box-shadow:0 24px 60px rgba(20,24,40,.25); height:780px; display:flex; flex-direction:column; overflow:hidden;">
+      <div style="height:44px; display:flex; align-items:center; gap:8px; padding:0 20px; flex:none;">
+        <span style="width:12px; height:12px; border-radius:50%; background:#f2605a;"></span>
+        <span style="width:12px; height:12px; border-radius:50%; background:#f5bd4f;"></span>
+        <span style="width:12px; height:12px; border-radius:50%; background:#61c454;"></span>
+      </div>
+      <div style="display:flex; align-items:center; gap:20px; padding:6px 32px 16px; flex:none;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="width:30px; height:30px; border-radius:10px; background:#17181c; color:#fff; display:flex; align-items:center; justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg></span>
+          <span style="font-weight:800; font-size:17px;">AfterMeet</span>
+        </div>
+        <nav style="flex:1; display:flex; justify-content:center; gap:6px;">
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer;" style-hover="background:#e2e5eb">首页</span>
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer;" style-hover="background:#e2e5eb">会议库</span>
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer; display:flex; align-items:center; gap:6px;" style-hover="background:#e2e5eb">待办 <span style="background:#e0604d; color:#fff; font-size:10.5px; font-weight:800; padding:1px 7px; border-radius:999px;">6</span></span>
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer;" style-hover="background:#e2e5eb">设置</span>
+        </nav>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e5e8ee; border-radius:999px; padding:8px 14px; font-size:12.5px; color:#8a8f9c;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg> 搜索 <span style="font-size:10.5px; background:#eef0f4; padding:1px 6px; border-radius:6px;">⌘K</span></span>
+          <span style="display:flex; align-items:center; gap:8px; background:#e0604d; color:#fff; border-radius:999px; padding:10px 20px; font-weight:700; font-size:13.5px;"><span style="animation:rec-pulse 1.6s ease-in-out infinite;">●</span> 42:13</span>
+        </div>
+      </div>
+      <div style="flex:1; min-height:0; display:flex; gap:20px; padding:4px 32px 28px;">
+        <div style="flex:1.6; min-width:0; background:#fff; border-radius:22px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+          <div style="display:flex; align-items:center; gap:14px; padding:20px 24px 14px; flex:none;">
+            <span style="width:14px; height:14px; border-radius:50%; background:#e0604d; animation:rec-pulse 1.6s ease-in-out infinite;"></span>
+            <span style="font-weight:800; font-size:26px; font-variant-numeric:tabular-nums;">42:13</span>
+            <span style="background:#fbe9e5; color:#b23c2b; font-size:11.5px; font-weight:700; padding:4px 12px; border-radius:999px;">系统音 + 麦克风</span>
+            <span style="background:#edeff3; color:#6b7180; font-size:11.5px; font-weight:700; padding:4px 12px; border-radius:999px;">流式 · 本地</span>
+            <span style="flex:1;"></span>
+            <span style="font-size:12px; color:#b23c2b; font-weight:700;"><span style="display:inline-flex; align-items:flex-end; gap:2px; height:12px;"><span style="width:3px; height:7px; background:#e0604d; border-radius:2px;"></span><span style="width:3px; height:12px; background:#e0604d; border-radius:2px;"></span><span style="width:3px; height:9px; background:#e0604d; border-radius:2px;"></span></span> 音频活跃</span>
+            <button style="display:flex; align-items:center; gap:8px; background:#e0604d; color:#fff; border:0; border-radius:999px; padding:11px 22px; font:700 13.5px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#c94f3d"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="5" y="5" width="14" height="14" rx="3"></rect></svg> 停止并生成纪要</button>
+          </div>
+          <div style="font-size:12px; color:#8a8f9c; padding:0 24px 10px; flex:none;">实时转写 · 6,842 字 · 58 段</div>
+          <div style="flex:1; overflow:hidden; padding:6px 24px 16px; display:flex; flex-direction:column; gap:14px;">
+            <div style="display:flex; gap:14px;"><span style="flex:none; width:48px; font-size:12px; font-weight:700; color:#b23c2b; font-variant-numeric:tabular-nums;">38:52</span><p style="margin:0; font-size:14.5px; line-height:1.7;">回到定价这块，我们上次留了两个方案，今天必须拍板，不能再拖到下个迭代了。</p></div>
+            <div style="display:flex; gap:14px;"><span style="flex:none; width:48px; font-size:12px; font-weight:700; color:#b23c2b; font-variant-numeric:tabular-nums;">39:40</span><p style="margin:0; font-size:14.5px; line-height:1.7;">我倾向 49 一档，39 那档毛利算下来撑不住客服和模型成本，尤其是重度用户。</p></div>
+            <div style="display:flex; gap:14px;"><span style="flex:none; width:48px; font-size:12px; font-weight:700; color:#b23c2b; font-variant-numeric:tabular-nums;">40:37</span><p style="margin:0; font-size:14.5px; line-height:1.7;">同意，但要给老用户一个缓冲，直接涨价社区会炸。建议保留十二个月的过渡价。</p></div>
+            <div style="display:flex; gap:14px;"><span style="flex:none; width:48px; font-size:12px; font-weight:700; color:#b23c2b; font-variant-numeric:tabular-nums;">41:28</span><p style="margin:0; font-size:14.5px; line-height:1.7;">可以，过渡期内按老价格续费，新用户直接走新价。运营这边我出一版公告文案。</p></div>
+            <div style="display:flex; gap:14px;"><span style="flex:none; width:48px; font-size:12px; font-weight:700; color:#b23c2b; font-variant-numeric:tabular-nums;">42:10</span><p style="margin:0; font-size:14.5px; line-height:1.7;">那就这么定：Pro 版四十九一个月，九月十五号先灰度百分之十，看一周数据再全量。</p></div>
+            <div style="display:flex; gap:14px; background:#f5f6f9; border-radius:12px; padding:10px 12px; margin:0 -12px;"><span style="flex:none; width:48px; font-size:12px; font-weight:700; color:#8a8f9c;">正在听</span><p style="margin:0; font-size:14.5px; line-height:1.7; color:#8a8f9c;">灰度期间客服话术要同步更新，还有帮助中心那几篇……</p></div>
+          </div>
+          <div style="border-top:1px solid #eef0f4; padding:12px 24px; font-size:12px; color:#8a8f9c; flex:none;">录制对其他参会者不可见 — 请确保他们知情，是否声明由你决定。</div>
+        </div>
+        <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:20px;">
+          <div style="background:#17181c; color:#fff; border-radius:22px; padding:20px 22px;">
+            <div style="font-size:11px; color:#b9bdc9; font-weight:700; letter-spacing:.06em; margin-bottom:8px;">关联会议 · 飞书</div>
+            <div style="font-weight:800; font-size:17px;">产品周会</div>
+            <div style="font-size:12.5px; color:#b9bdc9; margin-top:3px;">14:00 – 15:00 · 组织者 王倩</div>
+            <div style="display:flex; gap:8px; margin-top:12px;">
+              <span style="background:rgba(255,255,255,.14); font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;">已接受</span>
+              <span style="background:rgba(255,255,255,.14); font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;">视频会议</span>
+            </div>
+          </div>
+          <div style="background:#fff; border-radius:22px; padding:20px 22px; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+            <div style="font-weight:800; font-size:15px; margin-bottom:12px;">本场</div>
+            <div style="display:flex; gap:10px;">
+              <div style="flex:1; background:#f5f6f9; border-radius:14px; padding:12px 14px;"><div style="font-size:11px; color:#8a8f9c;">时长</div><div style="font-weight:800; font-size:17px; font-variant-numeric:tabular-nums;">42:13</div></div>
+              <div style="flex:1; background:#f5f6f9; border-radius:14px; padding:12px 14px;"><div style="font-size:11px; color:#8a8f9c;">字数</div><div style="font-weight:800; font-size:17px; font-variant-numeric:tabular-nums;">6,842</div></div>
+              <div style="flex:1; background:#f5f6f9; border-radius:14px; padding:12px 14px;"><div style="font-size:11px; color:#8a8f9c;">段落</div><div style="font-weight:800; font-size:17px; font-variant-numeric:tabular-nums;">58</div></div>
+            </div>
+          </div>
+          <div style="background:#fff; border-radius:22px; padding:20px 22px; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+            <div style="font-weight:800; font-size:15px; margin-bottom:6px;">实时存档</div>
+            <div style="font-size:12px; color:#8a8f9c; line-height:1.6; margin-bottom:12px;">边转边写盘，进程崩溃也不丢。<br>~/AfterMeet/transcripts/2026-08-28.md</div>
+            <button style="background:#eef0f4; color:#17181c; border:0; border-radius:999px; padding:9px 18px; font:700 12.5px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#e2e5eb">打开存档文件夹</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1c 会议详情 -->
+  <div id="1c" data-screen-label="1c 会议详情" style="flex:none; position:relative; width:1200px;">
+    <div style="position:absolute; top:-40px; left:0; background:#17181c; color:#fff; font-weight:700; font-size:12px; padding:6px 14px; border-radius:999px;">1C · 会议详情 — 总结 · 时间点跳转 · 问 AI（顶部为录制迷你条）</div>
+    <div style="background:#eef0f4; border-radius:24px; box-shadow:0 24px 60px rgba(20,24,40,.25); height:860px; display:flex; flex-direction:column; overflow:hidden;">
+      <div style="height:44px; display:flex; align-items:center; gap:8px; padding:0 20px; flex:none;">
+        <span style="width:12px; height:12px; border-radius:50%; background:#f2605a;"></span>
+        <span style="width:12px; height:12px; border-radius:50%; background:#f5bd4f;"></span>
+        <span style="width:12px; height:12px; border-radius:50%; background:#61c454;"></span>
+      </div>
+      <div style="display:flex; align-items:center; gap:20px; padding:6px 32px 12px; flex:none;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="width:30px; height:30px; border-radius:10px; background:#17181c; color:#fff; display:flex; align-items:center; justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg></span>
+          <span style="font-weight:800; font-size:17px;">AfterMeet</span>
+        </div>
+        <nav style="flex:1; display:flex; justify-content:center; gap:6px;">
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer;" style-hover="background:#e2e5eb">首页</span>
+          <span style="background:#17181c; color:#fff; font-weight:700; font-size:13.5px; padding:9px 20px; border-radius:999px;">会议库</span>
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer; display:flex; align-items:center; gap:6px;" style-hover="background:#e2e5eb">待办 <span style="background:#e0604d; color:#fff; font-size:10.5px; font-weight:800; padding:1px 7px; border-radius:999px;">6</span></span>
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer;" style-hover="background:#e2e5eb">设置</span>
+        </nav>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e5e8ee; border-radius:999px; padding:8px 14px; font-size:12.5px; color:#8a8f9c;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg> 搜索 <span style="font-size:10.5px; background:#eef0f4; padding:1px 6px; border-radius:6px;">⌘K</span></span>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:center; padding:0 32px 12px; flex:none;">
+        <div style="display:flex; align-items:center; gap:12px; background:#fff; border-radius:999px; padding:8px 10px 8px 18px; box-shadow:0 6px 20px rgba(20,24,40,.12);">
+          <span style="width:10px; height:10px; border-radius:50%; background:#e0604d; animation:rec-pulse 1.6s ease-in-out infinite;"></span>
+          <span style="font-size:13px; font-weight:800; font-variant-numeric:tabular-nums;">04:12</span>
+          <span style="font-size:12.5px; color:#8a8f9c;">正在录制：与米真科技对齐交付排期 — 可继续浏览其他页面</span>
+          <a href="#1b" style="font-size:12px; font-weight:700; text-decoration:none;">回到录制 ›</a>
+          <button style="background:#fbe9e5; color:#b23c2b; border:0; border-radius:999px; padding:6px 14px; font:700 12px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#f6d7d0"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="vertical-align:-1px"><rect x="5" y="5" width="14" height="14" rx="3"></rect></svg> 停止</button>
+        </div>
+      </div>
+      <div style="flex:1; min-height:0; display:flex; gap:20px; padding:0 32px 28px;">
+        <div style="flex:1.15; min-width:0; display:flex; flex-direction:column; gap:14px; overflow:hidden;">
+          <div style="display:flex; align-items:center; gap:12px; flex:none;">
+            <a href="#1d" style="width:34px; height:34px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; text-decoration:none; font-size:15px; box-shadow:0 1px 2px rgba(20,24,40,.08);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></a>
+            <div style="min-width:0;">
+              <div style="font-weight:800; font-size:19px;">产品周会</div>
+              <div style="font-size:12px; color:#8a8f9c;">08-28 14:00 · 42 分 · 6,842 字 · 关联飞书日历</div>
+            </div>
+            <span style="flex:1;"></span>
+            <button style="background:#fff; border:1px solid #e5e8ee; border-radius:999px; padding:8px 16px; font:700 12.5px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#f5f6f9"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"></path><path d="M21 3v5h-5"></path></svg> 重新生成</button>
+            <button style="background:#fff; border:1px solid #e5e8ee; border-radius:999px; padding:8px 16px; font:700 12.5px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#f5f6f9">导出</button>
+            <button style="background:#fff; border:1px solid #e5e8ee; border-radius:999px; padding:8px 16px; font:700 12.5px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; color:#8a8f9c; cursor:pointer;" style-hover="background:#f5f6f9">删除</button>
+          </div>
+          <div style="flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column; gap:14px;">
+            <div style="background:#17181c; color:#fff; border-radius:20px; padding:20px 24px; flex:none;">
+              <div style="font-size:11px; letter-spacing:.08em; color:#b9bdc9; font-weight:700;">会议主题</div>
+              <div style="font-weight:800; font-size:21px; line-height:1.35; margin-top:4px;">确定 Pro 版定价 ¥49/月，9 月 15 日起灰度 10%</div>
+            </div>
+            <div style="background:#fff; border-radius:20px; padding:18px 22px; flex:none; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+              <div style="font-weight:800; font-size:14px; margin-bottom:10px;">要点 <span style="font-weight:500; font-size:12px; color:#8a8f9c;">— 点时间戳跳回原文</span></div>
+              <div style="display:flex; flex-direction:column; gap:9px; font-size:13.5px; line-height:1.6;">
+                <div style="display:flex; gap:10px; align-items:baseline;"><span style="flex:none; width:7px; height:7px; border-radius:50%; background:#e0604d; margin-top:6px;"></span><span>¥39 档毛利无法覆盖客服与模型成本，放弃低价档 <a href="#1c" style="font-size:11px; font-weight:800; background:#fbe9e5; color:#b23c2b; padding:1px 8px; border-radius:999px; text-decoration:none; font-variant-numeric:tabular-nums;">39:40</a></span></div>
+                <div style="display:flex; gap:10px; align-items:baseline;"><span style="flex:none; width:7px; height:7px; border-radius:50%; background:#e0604d; margin-top:6px;"></span><span>老用户保留 12 个月过渡价，按原价续费 <a href="#1c" style="font-size:11px; font-weight:800; background:#fbe9e5; color:#b23c2b; padding:1px 8px; border-radius:999px; text-decoration:none; font-variant-numeric:tabular-nums;">40:37</a></span></div>
+                <div style="display:flex; gap:10px; align-items:baseline;"><span style="flex:none; width:7px; height:7px; border-radius:50%; background:#e0604d; margin-top:6px;"></span><span>灰度期间同步更新客服话术与帮助中心 <a href="#1c" style="font-size:11px; font-weight:800; background:#fbe9e5; color:#b23c2b; padding:1px 8px; border-radius:999px; text-decoration:none; font-variant-numeric:tabular-nums;">42:31</a></span></div>
+              </div>
+            </div>
+            <div style="display:flex; gap:14px; flex:none;">
+              <div style="flex:1.3; background:#fff; border-radius:20px; padding:18px 22px; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+                <div style="font-weight:800; font-size:14px; margin-bottom:10px;">决议</div>
+                <div style="display:flex; flex-direction:column; gap:9px; font-size:13.5px; line-height:1.6;">
+                  <div style="display:flex; gap:10px; align-items:baseline;"><span style="flex:none; color:#2e7d54; display:flex; margin-top:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span><span>Pro 版定价 ¥49/月，新用户即时生效 <a href="#1c" style="font-size:11px; font-weight:800; background:#fbe9e5; color:#b23c2b; padding:1px 8px; border-radius:999px; text-decoration:none; font-variant-numeric:tabular-nums;">42:10</a></span></div>
+                  <div style="display:flex; gap:10px; align-items:baseline;"><span style="flex:none; color:#2e7d54; display:flex; margin-top:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span><span>9 月 15 日灰度 10%，观察一周后全量</span></div>
+                </div>
+              </div>
+              <div style="flex:1; background:#fff; border-radius:20px; padding:18px 22px; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+                <div style="font-weight:800; font-size:14px; margin-bottom:10px;">风险 / 待确认</div>
+                <div style="display:flex; gap:10px; font-size:13.5px; line-height:1.6; align-items:baseline;"><span style="flex:none; color:#b23c2b; font-weight:800;">!</span><span>涨价公告口径未定，需运营先出文案</span></div>
+              </div>
+            </div>
+            <div style="background:#fff; border-radius:20px; padding:18px 22px; flex:none; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+              <div style="font-weight:800; font-size:14px; margin-bottom:10px;">待办 <span style="background:#fbe9e5; color:#b23c2b; font-size:11px; font-weight:800; padding:2px 9px; border-radius:999px;">2 未完成</span></div>
+              <div style="display:flex; flex-direction:column; gap:9px; font-size:13.5px;">
+                <div style="display:flex; gap:10px; align-items:center;"><span style="flex:none; width:18px; height:18px; border:2px solid #c9cdd6; border-radius:50%;"></span><span style="flex:1;">运营出涨价公告文案</span><span style="font-size:11.5px; color:#8a8f9c;">陈斐 · 09-01</span></div>
+                <div style="display:flex; gap:10px; align-items:center;"><span style="flex:none; width:18px; height:18px; border:2px solid #c9cdd6; border-radius:50%;"></span><span style="flex:1;">配置灰度开关与监控看板</span><span style="font-size:11.5px; color:#8a8f9c;">李涛 · 09-10</span></div>
+                <div style="display:flex; gap:10px; align-items:center; opacity:.45;"><span style="flex:none; width:18px; height:18px; background:#17181c; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span><span style="flex:1; text-decoration:line-through;">更新定价页设计稿</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:14px;">
+          <div style="background:#fff; border-radius:20px; flex:1.2; min-height:0; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+            <div style="display:flex; align-items:center; gap:12px; padding:18px 22px 10px; flex:none;">
+              <span style="font-weight:800; font-size:14px;">完整转写</span>
+              <span style="background:#fbe9e5; color:#b23c2b; font-size:11px; font-weight:800; padding:2px 10px; border-radius:999px;">已定位 42:10</span>
+            </div>
+            <div style="flex:1; overflow:hidden; padding:2px 22px 14px; display:flex; flex-direction:column; gap:11px;">
+              <div style="display:flex; gap:12px;"><span style="flex:none; width:42px; font-size:11.5px; font-weight:700; color:#8a8f9c; font-variant-numeric:tabular-nums;">40:37</span><p style="margin:0; font-size:13px; line-height:1.65;">同意，但要给老用户一个缓冲，直接涨价社区会炸。建议保留十二个月的过渡价。</p></div>
+              <div style="display:flex; gap:12px;"><span style="flex:none; width:42px; font-size:11.5px; font-weight:700; color:#8a8f9c; font-variant-numeric:tabular-nums;">41:28</span><p style="margin:0; font-size:13px; line-height:1.65;">可以，过渡期内按老价格续费，新用户直接走新价。运营这边我出一版公告文案。</p></div>
+              <div style="display:flex; gap:12px; background:#fbe9e5; border-radius:12px; padding:9px 11px; margin:0 -11px;"><span style="flex:none; width:42px; font-size:11.5px; font-weight:800; color:#b23c2b; font-variant-numeric:tabular-nums;">42:10</span><p style="margin:0; font-size:13px; line-height:1.65; font-weight:500;">那就这么定：Pro 版四十九一个月，九月十五号先灰度百分之十，看一周数据再全量。</p></div>
+              <div style="display:flex; gap:12px;"><span style="flex:none; width:42px; font-size:11.5px; font-weight:700; color:#8a8f9c; font-variant-numeric:tabular-nums;">42:31</span><p style="margin:0; font-size:13px; line-height:1.65;">灰度期间客服话术要同步更新，还有帮助中心那几篇文档，我记一个待办。</p></div>
+            </div>
+          </div>
+          <sc-if value="{{ askAi }}" hint-placeholder-val="{{ true }}">
+            <div style="background:#fff; border-radius:20px; padding:18px 22px; flex:none; display:flex; flex-direction:column; gap:10px; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+              <div style="font-weight:800; font-size:14px;">问 AI <span style="font-weight:500; font-size:12px; color:#8a8f9c;">— 只基于本场转写作答</span></div>
+              <div style="align-self:flex-end; max-width:85%; background:#eef0f4; border-radius:16px 16px 4px 16px; padding:9px 14px; font-size:13px;">我们最终对定价定了什么？老用户怎么办？</div>
+              <div style="max-width:94%; background:#f5f6f9; border-radius:16px 16px 16px 4px; padding:10px 14px; font-size:13px; line-height:1.65;">Pro 版定价 <strong>¥49/月</strong>，9 月 15 日灰度 10%、一周后全量 <a href="#1c" style="font-size:10.5px; font-weight:800; background:#fbe9e5; color:#b23c2b; padding:1px 7px; border-radius:999px; text-decoration:none;">42:10</a>；老用户保留 12 个月过渡期，按原价续费 <a href="#1c" style="font-size:10.5px; font-weight:800; background:#fbe9e5; color:#b23c2b; padding:1px 7px; border-radius:999px; text-decoration:none;">40:37</a>。</div>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input placeholder="就这场会议提问…" style="flex:1; border:1px solid #e5e8ee; border-radius:999px; padding:10px 16px; font:400 13px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; background:#fff; outline:none; color:#17181c;">
+                <button style="width:38px; height:38px; border-radius:50%; background:#17181c; color:#fff; border:0; font-size:14px; cursor:pointer;" style-hover="background:#33353c"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="m5 12 7-7 7 7"></path><path d="M12 19V5"></path></svg></button>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1d 会议库 -->
+  <div id="1d" data-screen-label="1d 会议库" style="flex:none; position:relative; width:1200px;">
+    <div style="position:absolute; top:-40px; left:0; background:#17181c; color:#fff; font-weight:700; font-size:12px; padding:6px 14px; border-radius:999px;">1D · 会议库 — 列表 · 搜索 · 筛选</div>
+    <div style="background:#eef0f4; border-radius:24px; box-shadow:0 24px 60px rgba(20,24,40,.25); height:780px; display:flex; flex-direction:column; overflow:hidden;">
+      <div style="height:44px; display:flex; align-items:center; gap:8px; padding:0 20px; flex:none;">
+        <span style="width:12px; height:12px; border-radius:50%; background:#f2605a;"></span>
+        <span style="width:12px; height:12px; border-radius:50%; background:#f5bd4f;"></span>
+        <span style="width:12px; height:12px; border-radius:50%; background:#61c454;"></span>
+      </div>
+      <div style="display:flex; align-items:center; gap:20px; padding:6px 32px 16px; flex:none;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="width:30px; height:30px; border-radius:10px; background:#17181c; color:#fff; display:flex; align-items:center; justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg></span>
+          <span style="font-weight:800; font-size:17px;">AfterMeet</span>
+        </div>
+        <nav style="flex:1; display:flex; justify-content:center; gap:6px;">
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer;" style-hover="background:#e2e5eb">首页</span>
+          <span style="background:#17181c; color:#fff; font-weight:700; font-size:13.5px; padding:9px 20px; border-radius:999px;">会议库</span>
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer; display:flex; align-items:center; gap:6px;" style-hover="background:#e2e5eb">待办 <span style="background:#e0604d; color:#fff; font-size:10.5px; font-weight:800; padding:1px 7px; border-radius:999px;">6</span></span>
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer;" style-hover="background:#e2e5eb">设置</span>
+        </nav>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e5e8ee; border-radius:999px; padding:8px 14px; font-size:12.5px; color:#8a8f9c;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg> 搜索 <span style="font-size:10.5px; background:#eef0f4; padding:1px 6px; border-radius:6px;">⌘K</span></span>
+          <button style="display:flex; align-items:center; gap:8px; background:#17181c; color:#fff; border:0; border-radius:999px; padding:10px 20px; font:700 13.5px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#33353c"><span style="color:#e0604d;">●</span> 开始录制</button>
+        </div>
+      </div>
+      <div style="flex:1; min-height:0; padding:4px 32px 28px; display:flex; flex-direction:column; gap:16px;">
+        <div style="display:flex; align-items:flex-end; gap:16px;">
+          <div>
+            <div style="font-weight:800; font-size:22px;">会议库</div>
+            <div style="font-size:12.5px; color:#8a8f9c;">23 场会议 · 转写与纪要全部存在本机</div>
+          </div>
+          <span style="flex:1;"></span>
+          <input placeholder="搜索标题、转写全文、待办…" style="width:320px; border:1px solid #e5e8ee; border-radius:999px; padding:10px 18px; font:400 13px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; background:#fff; outline:none; color:#17181c;">
+          <div style="display:flex; gap:2px; background:#e2e5eb; border-radius:999px; padding:3px;">
+            <span style="padding:7px 16px; border-radius:999px; font-size:12.5px; font-weight:700; background:#17181c; color:#fff;">全部</span>
+            <span style="padding:7px 16px; border-radius:999px; font-size:12.5px; font-weight:600; color:#5c6270; cursor:pointer;" style-hover="background:#fff">本周</span>
+            <span style="padding:7px 16px; border-radius:999px; font-size:12.5px; font-weight:600; color:#5c6270; cursor:pointer;" style-hover="background:#fff">有待办</span>
+          </div>
+        </div>
+        <div style="background:#fff; border-radius:22px; padding:8px 24px; flex:1; min-height:0; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+          <div style="display:flex; gap:14px; padding:14px 0 10px; font-size:11.5px; font-weight:700; color:#8a8f9c; border-bottom:1px solid #eef0f4;">
+            <span style="flex:none; width:110px;">日期</span><span style="flex:1;">会议</span><span style="flex:none; width:70px;">时长</span><span style="flex:none; width:80px;">字数</span><span style="flex:none; width:60px;">待办</span><span style="flex:none; width:110px;">纪要</span>
+          </div>
+          <a href="#1c" style="display:flex; gap:14px; align-items:center; padding:14px 12px; margin:0 -12px; border-radius:14px; text-decoration:none; color:inherit;" style-hover="background:#f5f6f9">
+            <span style="flex:none; width:110px; font-size:13px; color:#5c6270; font-variant-numeric:tabular-nums;">08-28 14:00</span><span style="flex:1; font-weight:700; font-size:14px;">产品周会</span><span style="flex:none; width:70px; font-size:13px; color:#5c6270;">42 分</span><span style="flex:none; width:80px; font-size:13px; color:#5c6270; font-variant-numeric:tabular-nums;">6,842</span><span style="flex:none; width:60px;"><span style="background:#fbe9e5; color:#b23c2b; font-size:11px; font-weight:800; padding:2px 9px; border-radius:999px;">2</span></span><span style="flex:none; width:110px;"><span style="background:#e1f1e8; color:#2e7d54; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;">已生成</span></span>
+          </a>
+          <div style="display:flex; gap:14px; align-items:center; padding:14px 12px; margin:0 -12px; border-radius:14px; cursor:pointer;" style-hover="background:#f5f6f9">
+            <span style="flex:none; width:110px; font-size:13px; color:#5c6270; font-variant-numeric:tabular-nums;">08-27 10:30</span><span style="flex:1; font-weight:700; font-size:14px;">增长实验复盘</span><span style="flex:none; width:70px; font-size:13px; color:#5c6270;">58 分</span><span style="flex:none; width:80px; font-size:13px; color:#5c6270; font-variant-numeric:tabular-nums;">9,105</span><span style="flex:none; width:60px;"><span style="background:#fbe9e5; color:#b23c2b; font-size:11px; font-weight:800; padding:2px 9px; border-radius:999px;">3</span></span><span style="flex:none; width:110px;"><span style="background:#e1f1e8; color:#2e7d54; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;">已生成</span></span>
+          </div>
+          <div style="display:flex; gap:14px; align-items:center; padding:14px 12px; margin:0 -12px; border-radius:14px; cursor:pointer;" style-hover="background:#f5f6f9">
+            <span style="flex:none; width:110px; font-size:13px; color:#5c6270; font-variant-numeric:tabular-nums;">08-26 16:00</span><span style="flex:1; font-weight:700; font-size:14px;">客户访谈 · 米真科技</span><span style="flex:none; width:70px; font-size:13px; color:#5c6270;">31 分</span><span style="flex:none; width:80px; font-size:13px; color:#5c6270; font-variant-numeric:tabular-nums;">4,210</span><span style="flex:none; width:60px; font-size:13px; color:#c9cdd6;">—</span><span style="flex:none; width:110px;"><span style="background:#e1f1e8; color:#2e7d54; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;">已生成</span></span>
+          </div>
+          <div style="display:flex; gap:14px; align-items:center; padding:14px 12px; margin:0 -12px; border-radius:14px; cursor:pointer;" style-hover="background:#f5f6f9">
+            <span style="flex:none; width:110px; font-size:13px; color:#5c6270; font-variant-numeric:tabular-nums;">08-26 11:00</span><span style="flex:1; font-weight:700; font-size:14px;">2026-08-26 11:02 会议</span><span style="flex:none; width:70px; font-size:13px; color:#5c6270;">12 分</span><span style="flex:none; width:80px; font-size:13px; color:#5c6270; font-variant-numeric:tabular-nums;">1,876</span><span style="flex:none; width:60px; font-size:13px; color:#c9cdd6;">—</span><span style="flex:none; width:110px;"><span style="background:#edeff3; color:#6b7180; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;">仅转写</span></span>
+          </div>
+          <div style="display:flex; gap:14px; align-items:center; padding:14px 12px; margin:0 -12px; border-radius:14px; cursor:pointer;" style-hover="background:#f5f6f9">
+            <span style="flex:none; width:110px; font-size:13px; color:#5c6270; font-variant-numeric:tabular-nums;">08-25 15:00</span><span style="flex:1; font-weight:700; font-size:14px;">Q4 路线图对齐</span><span style="flex:none; width:70px; font-size:13px; color:#5c6270;">66 分</span><span style="flex:none; width:80px; font-size:13px; color:#5c6270; font-variant-numeric:tabular-nums;">11,430</span><span style="flex:none; width:60px; font-size:13px; color:#c9cdd6;">—</span><span style="flex:none; width:110px;"><span style="background:#fbe9e5; color:#b23c2b; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;">失败 · 重试</span></span>
+          </div>
+        </div>
+        <div style="font-size:12px; color:#8a8f9c;">自动起录的会议按开始时间命名，可在详情页重命名。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1e 待办 -->
+  <div id="1e" data-screen-label="1e 待办" style="flex:none; position:relative; width:1200px;">
+    <div style="position:absolute; top:-40px; left:0; background:#17181c; color:#fff; font-weight:700; font-size:12px; padding:6px 14px; border-radius:999px;">1E · 待办 — 按会议分组</div>
+    <div style="background:#eef0f4; border-radius:24px; box-shadow:0 24px 60px rgba(20,24,40,.25); height:780px; display:flex; flex-direction:column; overflow:hidden;">
+      <div style="height:44px; display:flex; align-items:center; gap:8px; padding:0 20px; flex:none;">
+        <span style="width:12px; height:12px; border-radius:50%; background:#f2605a;"></span>
+        <span style="width:12px; height:12px; border-radius:50%; background:#f5bd4f;"></span>
+        <span style="width:12px; height:12px; border-radius:50%; background:#61c454;"></span>
+      </div>
+      <div style="display:flex; align-items:center; gap:20px; padding:6px 32px 16px; flex:none;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="width:30px; height:30px; border-radius:10px; background:#17181c; color:#fff; display:flex; align-items:center; justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg></span>
+          <span style="font-weight:800; font-size:17px;">AfterMeet</span>
+        </div>
+        <nav style="flex:1; display:flex; justify-content:center; gap:6px;">
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer;" style-hover="background:#e2e5eb">首页</span>
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer;" style-hover="background:#e2e5eb">会议库</span>
+          <span style="background:#17181c; color:#fff; font-weight:700; font-size:13.5px; padding:9px 20px; border-radius:999px; display:flex; align-items:center; gap:6px;">待办 <span style="background:#e0604d; color:#fff; font-size:10.5px; font-weight:800; padding:1px 7px; border-radius:999px;">6</span></span>
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer;" style-hover="background:#e2e5eb">设置</span>
+        </nav>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e5e8ee; border-radius:999px; padding:8px 14px; font-size:12.5px; color:#8a8f9c;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg> 搜索 <span style="font-size:10.5px; background:#eef0f4; padding:1px 6px; border-radius:6px;">⌘K</span></span>
+          <button style="display:flex; align-items:center; gap:8px; background:#17181c; color:#fff; border:0; border-radius:999px; padding:10px 20px; font:700 13.5px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#33353c"><span style="color:#e0604d;">●</span> 开始录制</button>
+        </div>
+      </div>
+      <div style="flex:1; min-height:0; padding:4px 32px 28px; display:flex; flex-direction:column; gap:16px;">
+        <div style="display:flex; align-items:flex-end; gap:16px;">
+          <div>
+            <div style="font-weight:800; font-size:22px;">待办</div>
+            <div style="font-size:12.5px; color:#8a8f9c;">6 未完成 · 来自 4 场会议 · 勾选与详情页实时同步</div>
+          </div>
+          <span style="flex:1;"></span>
+          <div style="display:flex; gap:2px; background:#e2e5eb; border-radius:999px; padding:3px;">
+            <span style="padding:7px 16px; border-radius:999px; font-size:12.5px; font-weight:700; background:#17181c; color:#fff;">未完成</span>
+            <span style="padding:7px 16px; border-radius:999px; font-size:12.5px; font-weight:600; color:#5c6270; cursor:pointer;" style-hover="background:#fff">全部</span>
+          </div>
+        </div>
+        <div style="flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:16px; align-content:start;">
+          <div style="background:#fff; border-radius:20px; padding:18px 22px; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+            <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:12px;">
+              <span style="font-weight:800; font-size:15px;">产品周会</span>
+              <span style="font-size:11.5px; color:#8a8f9c;">今天 14:00 · 2 未完成</span>
+              <span style="flex:1;"></span>
+              <a href="#1c" style="font-size:12px; font-weight:700; color:#5c6270; text-decoration:none;">看纪要 ›</a>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px; font-size:13.5px;">
+              <div style="display:flex; gap:10px; align-items:center;"><span style="flex:none; width:18px; height:18px; border:2px solid #c9cdd6; border-radius:50%;"></span><span style="flex:1;">运营出涨价公告文案</span><span style="font-size:11.5px; color:#8a8f9c;">陈斐</span><span style="background:#fbe9e5; color:#b23c2b; font-size:11px; font-weight:700; padding:1px 8px; border-radius:999px;">09-01</span></div>
+              <div style="display:flex; gap:10px; align-items:center;"><span style="flex:none; width:18px; height:18px; border:2px solid #c9cdd6; border-radius:50%;"></span><span style="flex:1;">配置灰度开关与监控看板</span><span style="font-size:11.5px; color:#8a8f9c;">李涛 · 09-10</span></div>
+              <div style="display:flex; gap:10px; align-items:center; opacity:.45;"><span style="flex:none; width:18px; height:18px; background:#17181c; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span><span style="flex:1; text-decoration:line-through;">更新定价页设计稿</span></div>
+            </div>
+          </div>
+          <div style="background:#fff; border-radius:20px; padding:18px 22px; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+            <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:12px;">
+              <span style="font-weight:800; font-size:15px;">增长实验复盘</span>
+              <span style="font-size:11.5px; color:#8a8f9c;">昨天 10:30 · 2 未完成</span>
+              <span style="flex:1;"></span>
+              <a href="#1c" style="font-size:12px; font-weight:700; color:#5c6270; text-decoration:none;">看纪要 ›</a>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px; font-size:13.5px;">
+              <div style="display:flex; gap:10px; align-items:center;"><span style="flex:none; width:18px; height:18px; border:2px solid #c9cdd6; border-radius:50%;"></span><span style="flex:1;">下线 B 组实验，归档数据</span><span style="font-size:11.5px; color:#8a8f9c;">周然 · 08-29</span></div>
+              <div style="display:flex; gap:10px; align-items:center;"><span style="flex:none; width:18px; height:18px; border:2px solid #c9cdd6; border-radius:50%;"></span><span style="flex:1;">重跑注册漏斗周报</span></div>
+            </div>
+          </div>
+          <div style="background:#fff; border-radius:20px; padding:18px 22px; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+            <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:12px;">
+              <span style="font-weight:800; font-size:15px;">客户访谈 · 米真科技</span>
+              <span style="font-size:11.5px; color:#8a8f9c;">08-26 · 1 未完成</span>
+              <span style="flex:1;"></span>
+              <a href="#1c" style="font-size:12px; font-weight:700; color:#5c6270; text-decoration:none;">看纪要 ›</a>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; font-size:13.5px;"><span style="flex:none; width:18px; height:18px; border:2px solid #c9cdd6; border-radius:50%;"></span><span style="flex:1;">给米真发第二轮访谈提纲</span><span style="background:#fbe9e5; color:#b23c2b; font-size:11px; font-weight:700; padding:1px 8px; border-radius:999px;">明天</span></div>
+          </div>
+          <div style="background:#fff; border-radius:20px; padding:18px 22px; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+            <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:12px;">
+              <span style="font-weight:800; font-size:15px;">Q4 路线图对齐</span>
+              <span style="font-size:11.5px; color:#8a8f9c;">08-25 · 1 未完成</span>
+              <span style="flex:1;"></span>
+              <a href="#1c" style="font-size:12px; font-weight:700; color:#5c6270; text-decoration:none;">看纪要 ›</a>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; font-size:13.5px;"><span style="flex:none; width:18px; height:18px; border:2px solid #c9cdd6; border-radius:50%;"></span><span style="flex:1;">拆分 Q4 里程碑到双周迭代</span></div>
+          </div>
+        </div>
+        <div style="font-size:12px; color:#8a8f9c;">待办由纪要自动提取，点击条目文字可编辑；全部完成的会议自动收起。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1f 设置 -->
+  <div id="1f" data-screen-label="1f 设置" style="flex:none; position:relative; width:1200px;">
+    <div style="position:absolute; top:-40px; left:0; background:#17181c; color:#fff; font-weight:700; font-size:12px; padding:6px 14px; border-radius:999px;">1F · 设置</div>
+    <div style="background:#eef0f4; border-radius:24px; box-shadow:0 24px 60px rgba(20,24,40,.25); height:820px; display:flex; flex-direction:column; overflow:hidden;">
+      <div style="height:44px; display:flex; align-items:center; gap:8px; padding:0 20px; flex:none;">
+        <span style="width:12px; height:12px; border-radius:50%; background:#f2605a;"></span>
+        <span style="width:12px; height:12px; border-radius:50%; background:#f5bd4f;"></span>
+        <span style="width:12px; height:12px; border-radius:50%; background:#61c454;"></span>
+      </div>
+      <div style="display:flex; align-items:center; gap:20px; padding:6px 32px 16px; flex:none;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="width:30px; height:30px; border-radius:10px; background:#17181c; color:#fff; display:flex; align-items:center; justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg></span>
+          <span style="font-weight:800; font-size:17px;">AfterMeet</span>
+        </div>
+        <nav style="flex:1; display:flex; justify-content:center; gap:6px;">
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer;" style-hover="background:#e2e5eb">首页</span>
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer;" style-hover="background:#e2e5eb">会议库</span>
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer; display:flex; align-items:center; gap:6px;" style-hover="background:#e2e5eb">待办 <span style="background:#e0604d; color:#fff; font-size:10.5px; font-weight:800; padding:1px 7px; border-radius:999px;">6</span></span>
+          <span style="background:#17181c; color:#fff; font-weight:700; font-size:13.5px; padding:9px 20px; border-radius:999px;">设置</span>
+        </nav>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e5e8ee; border-radius:999px; padding:8px 14px; font-size:12.5px; color:#8a8f9c;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg> 搜索 <span style="font-size:10.5px; background:#eef0f4; padding:1px 6px; border-radius:6px;">⌘K</span></span>
+          <button style="display:flex; align-items:center; gap:8px; background:#17181c; color:#fff; border:0; border-radius:999px; padding:10px 20px; font:700 13.5px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#33353c"><span style="color:#e0604d;">●</span> 开始录制</button>
+        </div>
+      </div>
+      <div style="flex:1; min-height:0; padding:4px 32px 28px; display:flex; flex-direction:column; gap:14px;">
+        <div>
+          <div style="font-weight:800; font-size:22px;">设置</div>
+          <div style="font-size:12.5px; color:#8a8f9c;">修改即时生效，保存在本机。</div>
+        </div>
+        <div style="flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:16px; align-content:start;">
+          <div style="background:#fff; border-radius:20px; padding:20px 24px; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+            <div style="font-weight:800; font-size:15px; margin-bottom:4px;">转写</div>
+            <div style="font-size:12px; color:#8a8f9c; margin-bottom:12px;">模型已内置，全部离线运行</div>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+              <div style="display:flex; gap:12px; align-items:center; background:#f5f6f9; border:2px solid #17181c; border-radius:14px; padding:11px 14px;">
+                <span style="flex:none; width:16px; height:16px; border-radius:50%; border:2px solid #17181c; position:relative;"><span style="position:absolute; inset:3px; background:#17181c; border-radius:50%;"></span></span>
+                <div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px;">流式 · 中英双语（推荐）</div><div style="font-size:11.5px; color:#8a8f9c;">边说边出字，会中实时显示用这个</div></div>
+              </div>
+              <div style="display:flex; gap:12px; align-items:center; background:#f5f6f9; border:2px solid transparent; border-radius:14px; padding:11px 14px; cursor:pointer;">
+                <span style="flex:none; width:16px; height:16px; border-radius:50%; border:2px solid #c9cdd6;"></span>
+                <div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px;">高精度 · large-v3-turbo</div><div style="font-size:11.5px; color:#8a8f9c;">停止后整段重转一遍，字更准但更慢</div></div>
+              </div>
+            </div>
+            <div style="display:flex; gap:14px; align-items:center;">
+              <div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px;">停止后用高精度模型重转全文</div><div style="font-size:11.5px; color:#8a8f9c;">纪要基于重转后的文本，推荐开启</div></div>
+              <div style="flex:none; width:46px; height:27px; background:#17181c; border-radius:999px; position:relative; cursor:pointer;"><span style="position:absolute; right:3px; top:3px; width:21px; height:21px; background:#fff; border-radius:50%;"></span></div>
+            </div>
+          </div>
+          <div style="background:#fff; border-radius:20px; padding:20px 24px; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+            <div style="font-weight:800; font-size:15px; margin-bottom:12px;">纪要生成</div>
+            <div style="font-size:12px; color:#8a8f9c; margin-bottom:6px;">Gemini API Key — 只用于把转写稿变成纪要，正文不留存</div>
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+              <input value="AIza••••••••••••••••••••3kQ" style="flex:1; border:1px solid #e5e8ee; border-radius:999px; padding:9px 16px; font:400 13px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; background:#f5f6f9; outline:none; color:#17181c;">
+              <button style="background:#eef0f4; border:0; border-radius:999px; padding:9px 18px; font:700 12.5px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#e2e5eb">测试</button>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center; margin-bottom:14px;">
+              <span style="background:#e1f1e8; color:#2e7d54; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;">连接正常</span>
+              <span style="font-size:12px; color:#8a8f9c;">上次调用 今天 14:43 · gemini-2.5-flash</span>
+            </div>
+            <div style="display:flex; gap:14px; align-items:center;">
+              <div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px;">录制结束后自动生成纪要</div><div style="font-size:11.5px; color:#8a8f9c;">关闭后可在详情页手动生成</div></div>
+              <div style="flex:none; width:46px; height:27px; background:#17181c; border-radius:999px; position:relative; cursor:pointer;"><span style="position:absolute; right:3px; top:3px; width:21px; height:21px; background:#fff; border-radius:50%;"></span></div>
+            </div>
+          </div>
+          <div style="background:#fff; border-radius:20px; padding:20px 24px; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+            <div style="font-weight:800; font-size:15px; margin-bottom:12px;">自动化</div>
+            <div style="display:flex; flex-direction:column; gap:14px;">
+              <div style="display:flex; gap:14px; align-items:center;">
+                <div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px;">检测到会议自动开始记录</div><div style="font-size:11.5px; color:#8a8f9c;">麦克风一活跃即开录，开始与结束都会通知</div></div>
+                <div style="flex:none; width:46px; height:27px; background:#17181c; border-radius:999px; position:relative; cursor:pointer;"><span style="position:absolute; right:3px; top:3px; width:21px; height:21px; background:#fff; border-radius:50%;"></span></div>
+              </div>
+              <div style="display:flex; gap:14px; align-items:center;">
+                <div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px;">开机自启，常驻菜单栏</div><div style="font-size:11.5px; color:#8a8f9c;">窗口关闭不退出，随时待命</div></div>
+                <div style="flex:none; width:46px; height:27px; background:#d6d9e0; border-radius:999px; position:relative; cursor:pointer;"><span style="position:absolute; left:3px; top:3px; width:21px; height:21px; background:#fff; border-radius:50%;"></span></div>
+              </div>
+              <div style="display:flex; gap:14px; align-items:center; border-top:1px solid #eef0f4; padding-top:14px;">
+                <div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px;">飞书日历</div><div style="font-size:11.5px; color:#8a8f9c;">首页显示日程，录制自动关联会议</div></div>
+                <span style="background:#e1f1e8; color:#2e7d54; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;">已授权</span>
+                <button style="background:#eef0f4; border:0; border-radius:999px; padding:7px 14px; font:700 12px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#e2e5eb">重新授权</button>
+              </div>
+            </div>
+          </div>
+          <div style="background:#fff; border-radius:20px; padding:20px 24px; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+            <div style="font-weight:800; font-size:15px; margin-bottom:12px;">存储</div>
+            <div style="font-size:12px; color:#8a8f9c; margin-bottom:6px;">转写与纪要存档位置</div>
+            <div style="display:flex; gap:8px; margin-bottom:12px;">
+              <input value="~/AfterMeet" style="flex:1; border:1px solid #e5e8ee; border-radius:999px; padding:9px 16px; font:400 13px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; background:#f5f6f9; outline:none; color:#17181c;">
+              <button style="background:#eef0f4; border:0; border-radius:999px; padding:9px 18px; font:700 12.5px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#e2e5eb">更改</button>
+              <button style="background:#eef0f4; border:0; border-radius:999px; padding:9px 18px; font:700 12.5px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#e2e5eb">打开</button>
+            </div>
+            <div style="font-size:12px; color:#8a8f9c; line-height:1.7;">23 场会议 · 转写稿 4.2 MB · 录音不保留（仅实时转写）<br>转写模型占用 3.1 GB，随应用安装。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1g 首次使用 -->
+  <div id="1g" data-screen-label="1g 首页 · 首次使用" style="flex:none; position:relative; width:1200px;">
+    <div style="position:absolute; top:-40px; left:0; background:#17181c; color:#fff; font-weight:700; font-size:12px; padding:6px 14px; border-radius:999px;">1G · 首页 — 首次使用（空态即引导）</div>
+    <div style="background:#eef0f4; border-radius:24px; box-shadow:0 24px 60px rgba(20,24,40,.25); height:780px; display:flex; flex-direction:column; overflow:hidden;">
+      <div style="height:44px; display:flex; align-items:center; gap:8px; padding:0 20px; flex:none;">
+        <span style="width:12px; height:12px; border-radius:50%; background:#f2605a;"></span>
+        <span style="width:12px; height:12px; border-radius:50%; background:#f5bd4f;"></span>
+        <span style="width:12px; height:12px; border-radius:50%; background:#61c454;"></span>
+      </div>
+      <div style="display:flex; align-items:center; gap:20px; padding:6px 32px 16px; flex:none;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="width:30px; height:30px; border-radius:10px; background:#17181c; color:#fff; display:flex; align-items:center; justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg></span>
+          <span style="font-weight:800; font-size:17px;">AfterMeet</span>
+        </div>
+        <nav style="flex:1; display:flex; justify-content:center; gap:6px;">
+          <span style="background:#17181c; color:#fff; font-weight:700; font-size:13.5px; padding:9px 20px; border-radius:999px;">首页</span>
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer;" style-hover="background:#e2e5eb">会议库</span>
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer;" style-hover="background:#e2e5eb">待办</span>
+          <span style="font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:999px; color:#5c6270; cursor:pointer;" style-hover="background:#e2e5eb">设置</span>
+        </nav>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e5e8ee; border-radius:999px; padding:8px 14px; font-size:12.5px; color:#8a8f9c;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg> 搜索 <span style="font-size:10.5px; background:#eef0f4; padding:1px 6px; border-radius:6px;">⌘K</span></span>
+          <button style="display:flex; align-items:center; gap:8px; background:#17181c; color:#fff; border:0; border-radius:999px; padding:10px 20px; font:700 13.5px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#33353c"><span style="color:#e0604d;">●</span> 开始录制</button>
+        </div>
+      </div>
+      <div style="flex:1; min-height:0; display:flex; gap:20px; padding:4px 32px 28px;">
+        <div style="flex:1.1; min-width:0; background:#17181c; color:#fff; border-radius:22px; padding:48px 48px; display:flex; flex-direction:column; justify-content:center; gap:18px;">
+          <div style="font-size:11.5px; letter-spacing:.08em; color:#e0604d; font-weight:800;">开会前 30 秒设置一次，之后全自动</div>
+          <div style="font-weight:800; font-size:32px; line-height:1.3; max-width:420px;">录下每一场会，<br>纪要自己长出来。</div>
+          <p style="font-size:14px; color:#b9bdc9; max-width:400px; margin:0; line-height:1.7;">转写模型已内置，音频与文字全程留在这台 Mac 上。你只需要授权，然后正常开会。</p>
+          <button style="align-self:flex-start; display:flex; align-items:center; gap:8px; background:#e0604d; color:#fff; border:0; border-radius:999px; padding:13px 26px; font:700 15px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#c94f3d">● 开始第一场录制</button>
+          <p style="font-size:12px; color:#8a8f9c; margin:0;">或者什么都不做——开启右侧自动起录后，下一场会自己开始记录。</p>
+        </div>
+        <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:16px;">
+          <div style="background:#fff; border-radius:22px; padding:22px 24px; flex:1; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+            <div style="font-weight:800; font-size:15px; margin-bottom:14px;">准备清单</div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; gap:14px; align-items:center; background:#f5f6f9; border-radius:14px; padding:12px 16px;">
+                <span style="flex:none; width:22px; height:22px; background:#2e7d54; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+                <div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px;">系统音频录制权限</div><div style="font-size:11.5px; color:#8a8f9c;">用于录下会议里其他人的声音</div></div>
+              </div>
+              <div style="display:flex; gap:14px; align-items:center; background:#f5f6f9; border-radius:14px; padding:12px 16px;">
+                <span style="flex:none; width:22px; height:22px; background:#2e7d54; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+                <div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px;">麦克风权限</div><div style="font-size:11.5px; color:#8a8f9c;">录下你自己的发言</div></div>
+              </div>
+              <div style="display:flex; gap:14px; align-items:center; background:#f5f6f9; border-radius:14px; padding:12px 16px;">
+                <span style="flex:none; width:22px; height:22px; border:2px solid #e0604d; border-radius:50%;"></span>
+                <div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px;">LLM Key</div><div style="font-size:11.5px; color:#8a8f9c;">用于自动生成纪要；不配也能转写和存档</div></div>
+                <button style="background:#17181c; color:#fff; border:0; border-radius:999px; padding:7px 16px; font:700 12px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#33353c">去配置</button>
+              </div>
+              <div style="display:flex; gap:14px; align-items:center; background:#f5f6f9; border-radius:14px; padding:12px 16px;">
+                <span style="flex:none; width:22px; height:22px; border:2px solid #c9cdd6; border-radius:50%;"></span>
+                <div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px;">连接飞书日历（可选）</div><div style="font-size:11.5px; color:#8a8f9c;">首页显示日程，录制自动关联</div></div>
+                <button style="background:#fff; border:1px solid #e5e8ee; border-radius:999px; padding:7px 16px; font:700 12px 'Plus Jakarta Sans','Noto Sans SC',sans-serif; cursor:pointer;" style-hover="background:#eef0f4">连接</button>
+              </div>
+            </div>
+          </div>
+          <div style="background:#fff; border-radius:22px; padding:18px 24px; display:flex; gap:16px; align-items:center; box-shadow:0 1px 2px rgba(20,24,40,.04);">
+            <div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14px;">检测到会议自动开始记录</div><div style="font-size:12px; color:#8a8f9c;">推荐开启 — 忘了点开始也不会丢会</div></div>
+            <div style="flex:none; width:46px; height:27px; background:#17181c; border-radius:999px; position:relative; cursor:pointer;"><span style="position:absolute; right:3px; top:3px; width:21px; height:21px; background:#fff; border-radius:50%;"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;askAiOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;1C 详情&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return { askAi: this.props.askAiOpen ?? true };
+  }
+}
+</script>
+</body>
+</html>

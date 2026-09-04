@@ -1,0 +1,52 @@
+appId: com.choijun.aftermeet
+productName: AfterMeet
+copyright: Copyright © 2026 choijun
+
+directories:
+  output: dist
+  buildResources: build
+
+# 进 asar 的应用代码(electron-vite 产物)
+files:
+  - out/**/*
+  - package.json
+
+# 随 .app 分发的自包含运行时(放到 Contents/Resources/ 下,asar 之外)
+extraResources:
+  - from: resources/bin
+    to: bin
+    filter: ['**/*']
+  - from: resources/whisper
+    to: whisper
+    filter: ['**/*']
+  - from: resources/models
+    to: models
+    filter: ['ggml-large-v3-turbo.bin', 'ggml-silero-v5.1.2.bin']
+  # 注:流式 ASR 运行时(venv+sherpa模型+脚本)不进 bundle(含系统 python 符号链接+第三方 .so,
+  # 会导致 codesign 深度校验失败),改放 userData/streaming 下,见 paths.ts::streamingRoot。
+  # 个人构建:把 API key 一并带上(分发给他人时请删掉此条,改用 userData/.env)
+  - from: .env
+    to: .env
+    filter: ['.env']
+
+asarUnpack:
+  - '**/*.node'
+
+mac:
+  icon: build/icon.icns
+  category: public.app-category.productivity
+  target:
+    - target: dir
+    - target: dmg
+  # 用自签名证书签名(稳定身份,TCC 屏幕录制授权可永久绑定,跨重新打包不失效)。
+  # 不做 hardened runtime / 公证:本地个人使用。
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  identity: AfterMeet Local Signing
+  extendInfo:
+    NSMicrophoneUsageDescription: AfterMeet 需要访问音频以转写会议内容。
+    NSScreenCaptureUsageDescription: AfterMeet 通过屏幕录制权限截取系统输出音频,用于本地实时转写(不录制画面)。
+    LSMinimumSystemVersion: '13.0'
+
+dmg:
+  title: AfterMeet ${version}
