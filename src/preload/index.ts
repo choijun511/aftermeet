@@ -2,6 +2,10 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { AfterMeetApi, StatusEvent, TranscriptSegment, Meeting } from '../shared/types'
 
 const api: AfterMeetApi = {
+  testSystemAudio: () => ipcRenderer.invoke('permissions:testSystemAudio'),
+  getPermissions: () => ipcRenderer.invoke('permissions:get'),
+  requestMicrophonePermission: () => ipcRenderer.invoke('permissions:microphone'),
+  openPermissionSettings: (kind) => ipcRenderer.invoke('permissions:open', kind),
   startRecording: (title, calendar) => ipcRenderer.invoke('rec:start', title, calendar ?? null),
   stopRecording: () => ipcRenderer.invoke('rec:stop'),
   listTodayMeetings: () => ipcRenderer.invoke('feishu:agenda'),
@@ -22,7 +26,8 @@ const api: AfterMeetApi = {
   listMeetings: () => ipcRenderer.invoke('meetings:list'),
   getMeeting: (id) => ipcRenderer.invoke('meetings:get', id),
   deleteMeeting: (id) => ipcRenderer.invoke('meetings:delete', id),
-  regenerate: (id) => ipcRenderer.invoke('meetings:regenerate', id),
+  regenerate: (id, mode = 'standard') => ipcRenderer.invoke('meetings:regenerate', id, mode),
+  modelStatus: () => ipcRenderer.invoke('app:modelStatus'),
   toggleTodo: (meetingId, todoId) =>
     ipcRenderer.invoke('meetings:toggleTodo', meetingId, todoId),
   openTranscriptsFolder: () => ipcRenderer.invoke('app:openTranscripts'),

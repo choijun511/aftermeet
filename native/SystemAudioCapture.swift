@@ -24,7 +24,7 @@ let MIC_GATE_RMS: Float = 0.015
 let MIC_GAIN: Float = 3.0
 let SYS_GAIN: Float = 1.5 // 降低以减少削波失真(过响会让 whisper 精转重复/出错)
 // 默认只用系统音(对方/会议声,干净)。耳机模式下可混入麦克风(你自己),无回声。
-let MIX_MIC = ProcessInfo.processInfo.environment["AFTERMEET_MIX_MIC"] != nil
+let MIX_MIC = ProcessInfo.processInfo.environment["AFTERMEET_MIX_MIC"] == "1"
 
 func logErr(_ s: String) {
   FileHandle.standardError.write((s + "\n").data(using: .utf8)!)
@@ -142,20 +142,24 @@ func extractMono(_ sampleBuffer: CMSampleBuffer) -> (mono: [Float], rate: Double
   let isInterleaved = (asbd.mFormatFlags & kAudioFormatFlagIsNonInterleaved) == 0
   guard isFloat else { return nil }
 
+  var needed = 0
+  let sizing = CMSampleBufferGetAudioBufferListWithRetainedBlockBuffer(
+    sampleBuffer, bufferListSizeNeededOut: &needed, bufferListOut: nil,
+    bufferListSize: 0, blockBufferAllocator: nil, blockBufferMemoryAllocator: nil,
+    flags: 0, blockBufferOut: nil)
+  guard sizing == noErr, needed > 0 else { return nil }
+  let storage = UnsafeMutableRawPointer.allocate(
+    byteCount: needed, alignment: MemoryLayout<AudioBufferList>.alignment)
+  defer { storage.deallocate() }
+  let abl = storage.bindMemory(to: AudioBufferList.self, capacity: 1)
   var blockBuffer: CMBlockBuffer?
-  var abl = AudioBufferList()
   let status = CMSampleBufferGetAudioBufferListWithRetainedBlockBuffer(
-    sampleBuffer,
-    bufferListSizeNeededOut: nil,
-    bufferListOut: &abl,
-    bufferListSize: MemoryLayout<AudioBufferList>.size,
-    blockBufferAllocator: nil,
-    blockBufferMemoryAllocator: nil,
+    sampleBuffer, bufferListSizeNeededOut: nil, bufferListOut: abl,
+    bufferListSize: needed, blockBufferAllocator: nil, blockBufferMemoryAllocator: nil,
     flags: kCMSampleBufferFlag_AudioBufferList_Assure16ByteAlignment,
-    blockBufferOut: &blockBuffer
-  )
+    blockBufferOut: &blockBuffer)
   guard status == noErr else { return nil }
-  let buffers = UnsafeMutableAudioBufferListPointer(&abl)
+  let buffers = UnsafeMutableAudioBufferListPointer(abl)
 
   var mono = [Float]()
   if isInterleaved {
@@ -191,6 +195,39 @@ final class Capturer: NSObject, SCStreamOutput, SCStreamDelegate {
   var stream: SCStream?
   let audioEngine = AVAudioEngine()
   var loggedSys = false
+  private let sourceLock = NSLock()
+  private var systemAvailable = false
+  private func setSystemAvailable(_ value: Bool) {
+    sourceLock.lock(); systemAvailable = value; sourceLock.unlock()
+  }
+  private func shouldMixMic() -> Bool {
+    sourceLock.lock(); defer { sourceLock.unlock() }
+    return MIX_MIC || !systemAvailable
+  }
+  private var levels: [String: Float] = [:]
+  private var seen: [String: Double] = [:]
+  private var healthTime = 0.0
+  private func meter(_ source: String, _ samples: [Float]) {
+    guard !samples.isEmpty else { return }
+    let rms = (samples.reduce(Float(0)) { $0 + $1 * $1 } / Float(samples.count)).squareRoot()
+    sourceLock.lock()
+    levels[source] = max(levels[source] ?? 0, rms)
+    seen[source] = now()
+    sourceLock.unlock()
+  }
+  private func reportHealth() {
+    sourceLock.lock()
+    let time = now()
+    guard time - healthTime >= 0.5 else { sourceLock.unlock(); return }
+    healthTime = time
+    var info: [String: Any] = ["type": "audio-health", "micIncluded": MIX_MIC || !systemAvailable]
+    for source in ["system", "microphone"] {
+      info[source] = ["rms": levels[source] ?? 0, "receiving": time - (seen[source] ?? 0) < 3]
+    }
+    levels.removeAll()
+    sourceLock.unlock()
+    if let data = try? JSONSerialization.data(withJSONObject: info), let line = String(data: data, encoding: .utf8) { logErr(line) }
+  }
   var flushTimer: DispatchSourceTimer?
   let sampleQueue = DispatchQueue(label: "audio.sample")
   // 诊断:分别把 mic-only / system-only 原始重采样流写文件
@@ -220,7 +257,7 @@ final class Capturer: NSObject, SCStreamOutput, SCStreamDelegate {
   private func startFlushTimer() {
     let t = DispatchSource.makeTimerSource(queue: DispatchQueue(label: "mix.flush"))
     t.schedule(deadline: .now() + 0.1, repeating: 0.1)
-    t.setEventHandler { [weak self] in self?.mixer.flush() }
+    t.setEventHandler { [weak self] in self?.mixer.flush(); self?.reportHealth() }
     t.resume()
     flushTimer = t
   }
@@ -251,6 +288,7 @@ final class Capturer: NSObject, SCStreamOutput, SCStreamDelegate {
         try s.addStreamOutput(self, type: .audio, sampleHandlerQueue: sampleQueue)
         try await s.startCapture()
         self.stream = s
+        self.setSystemAvailable(true)
         logErr("[helper] 系统音频采集已启动")
       } catch {
         logErr("[helper] 系统音频启动失败(将仅用麦克风): \(error)")
@@ -282,10 +320,11 @@ final class Capturer: NSObject, SCStreamOutput, SCStreamDelegate {
           mono.append(sum / Float(channels))
         }
       }
+      self.meter("microphone", mono)
       let rs = self.micResampler.process(mono, inRate: inRate)
       self.writeDebug(self.micDebug, rs)
       // 仅「耳机/线下模式」(env AFTERMEET_MIX_MIC=1)混入麦克风。
-      guard MIX_MIC else { return }
+      guard self.shouldMixMic() else { return }
       var sum: Float = 0
       for v in rs { sum += v * v }
       let micRms = rs.isEmpty ? 0 : (sum / Float(rs.count)).squareRoot()
@@ -308,6 +347,7 @@ final class Capturer: NSObject, SCStreamOutput, SCStreamDelegate {
   func stop() {
     flushTimer?.cancel()
     audioEngine.stop()
+    mixer.flush()
     if let s = stream {
       Task { try? await s.stopCapture(); logErr("[helper] 采集已停止"); exit(0) }
     } else {
@@ -317,6 +357,7 @@ final class Capturer: NSObject, SCStreamOutput, SCStreamDelegate {
 
   // SCStreamDelegate
   func stream(_ stream: SCStream, didStopWithError error: Error) {
+    setSystemAvailable(false)
     logErr("[helper] 系统音频流意外停止: \(error)")
   }
 
@@ -328,6 +369,7 @@ final class Capturer: NSObject, SCStreamOutput, SCStreamDelegate {
       loggedSys = true
       logErr("[helper] 系统音频格式: \(inRate)Hz")
     }
+    meter("system", mono)
     let rs = sysResampler.process(mono, inRate: inRate)
     writeDebug(sysDebug, rs)
     // 系统音干净但偏小,轻度放大(帮助流式 ASR),线性+限幅
@@ -336,6 +378,42 @@ final class Capturer: NSObject, SCStreamOutput, SCStreamDelegate {
     // 开麦克风混入时按样本序号正确相加。绝不改变时长/音高。
     mixer.addSys(boosted)
   }
+}
+
+// Diagnostic uses the same executable and ScreenCaptureKit path as recording,
+// but never starts the microphone, writes audio, or invokes transcription.
+final class PermissionProbe: NSObject, SCStreamOutput {
+  func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {}
+}
+if CommandLine.arguments.contains("--check-system-audio") {
+  Task {
+    do {
+      let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+      guard let display = content.displays.first else {
+        throw NSError(domain: "AfterMeet", code: 1, userInfo: [NSLocalizedDescriptionKey: "没有可用于采集的显示器"])
+      }
+      let config = SCStreamConfiguration()
+      config.capturesAudio = true
+      config.excludesCurrentProcessAudio = true
+      config.sampleRate = 16000
+      config.channelCount = 1
+      config.width = 2
+      config.height = 2
+      let sink = PermissionProbe()
+      let stream = SCStream(filter: SCContentFilter(display: display, excludingWindows: []), configuration: config, delegate: nil)
+      try stream.addStreamOutput(sink, type: .audio, sampleHandlerQueue: DispatchQueue(label: "permission-probe"))
+      try await stream.startCapture()
+      try await stream.stopCapture()
+      print("AFTERMEET_PROBE_OK")
+      exit(0)
+    } catch {
+      let error = error as NSError
+      print("AFTERMEET_PROBE_ERROR \(error.domain) \(error.code)")
+      exit(1)
+    }
+  }
+  RunLoop.main.run()
+  exit(1)
 }
 
 let capturer = Capturer()

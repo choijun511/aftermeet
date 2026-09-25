@@ -1,7 +1,10 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, systemPreferences } from 'electron'
 import { join } from 'path'
 import { existsSync, readFileSync, appendFileSync } from 'fs'
+import { testSystemAudio, audioProbeRunning } from './permissions'
 import { Session } from './session'
+import { openaiAvailable, openaiModel } from './openai'
+import { qwenAvailable, qwenModel } from './qwen'
 import { AutoStart } from './autostart'
 import {
   listTodayMeetings,
@@ -28,6 +31,7 @@ import type { AppSettings, CalendarEvent } from '../shared/types'
 
 function currentSettings(): AppSettings {
   return {
+    cloudAsr: getSetting('cloudAsr', qwenAvailable()),
     autoStart: getSetting('autoStart', true),
     twoPass: getSetting('twoPass', true),
     autoMinutes: getSetting('autoMinutes', true)
@@ -74,6 +78,7 @@ try {
 // 简易 .env 加载(dev 用项目根,打包后用 app 同级目录)
 function loadEnv(): void {
   const candidates = [
+    join(app.getPath('userData'), '.env'),
     join(app.getAppPath(), '.env'),
     join(process.cwd(), '.env'),
     join(process.resourcesPath || '', '.env')
@@ -86,7 +91,6 @@ function loadEnv(): void {
           process.env[m[1]] = m[2].replace(/^["']|["']$/g, '')
         }
       }
-      break
     }
   }
 }
@@ -131,7 +135,29 @@ function createWindow(): void {
 }
 
 function registerIpc(): void {
-  ipcMain.handle('rec:start', (_e, title: string, calendar) => session.start(title, calendar))
+  const permissions = () => ({
+    supported: process.platform === 'darwin',
+    microphone: process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('microphone') : 'unknown' as const,
+    screen: process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('screen') : 'unknown' as const
+  })
+  ipcMain.handle('permissions:get', permissions)
+  ipcMain.handle('permissions:testSystemAudio', () => {
+    if (!['idle', 'error'].includes(session.getStatus().state)) {
+      return { ok: false, message: '请先停止录制并等待会议处理完成，再测试。' }
+    }
+    return testSystemAudio()
+  })
+  ipcMain.handle('permissions:microphone', async () => {
+    if (process.platform === 'darwin') await systemPreferences.askForMediaAccess('microphone')
+    return permissions()
+  })
+  ipcMain.handle('permissions:open', async (_e, kind: unknown) => {
+    if (process.platform !== 'darwin') throw new Error('此功能仅适用于 macOS')
+    if (kind !== 'microphone' && kind !== 'screen') throw new Error('未知权限类型')
+    const pane = kind === 'microphone' ? 'Privacy_Microphone' : 'Privacy_ScreenCapture'
+    await shell.openExternal(`x-apple.systempreferences:com.apple.preference.security?${pane}`)
+  })
+  ipcMain.handle('rec:start', (_e, title: string, calendar) => audioProbeRunning() ? { ok: false, error: '系统音频测试中，请稍后开始录制。' } : session.start(title, calendar))
   ipcMain.handle('rec:stop', () => session.stop())
   ipcMain.handle('feishu:agenda', async () => {
     try {
@@ -165,7 +191,8 @@ function registerIpc(): void {
     deleteMeeting(id)
     return { ok: true }
   })
-  ipcMain.handle('meetings:regenerate', (_e, id: string) => session.regenerate(id))
+  ipcMain.handle('meetings:regenerate', (_e, id: string, mode: string) => session.regenerate(id, mode === 'deep' ? 'deep' : 'standard'))
+  ipcMain.handle('app:modelStatus', () => ({ openai: openaiAvailable(), qwen: qwenAvailable(), standard: openaiModel(), deep: openaiModel('deep'), asr: qwenModel() }))
   ipcMain.handle('meetings:toggleTodo', (_e, meetingId: string, todoId: string) => {
     const m = getMeeting(meetingId)
     if (!m) return { ok: false }
@@ -239,6 +266,7 @@ function registerIpc(): void {
   ipcMain.handle('app:openPath', (_e, p: string) => shell.openPath(p))
   ipcMain.handle('settings:get', () => currentSettings())
   ipcMain.handle('settings:set', (_e, key: keyof AppSettings, value: boolean) => {
+    if (!['cloudAsr', 'autoStart', 'twoPass', 'autoMinutes'].includes(key) || typeof value !== 'boolean') throw new Error('设置参数无效')
     setSetting(key, value)
     if (key === 'autoStart') autoStart.setEnabled(value)
     return currentSettings()

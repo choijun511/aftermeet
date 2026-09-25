@@ -1,6 +1,7 @@
 // 实时校对:把 whisper 转写片段修正为「通顺、带完整标点」的简体中文。
 // 首选 Gemini 2.5 Flash-Lite(便宜、快);无 Gemini key 时降级 Claude Haiku;都没有则原样返回。
 
+import { openaiAvailable, openaiText } from './openai'
 import Anthropic from '@anthropic-ai/sdk'
 import { geminiKey, geminiText } from './gemini'
 
@@ -34,12 +35,16 @@ export class Polisher {
   }
 
   get enabled(): boolean {
-    return this.useGemini || this.claude !== null
+    return openaiAvailable() || this.useGemini || this.claude !== null
   }
 
   async polish(text: string, context: string): Promise<string> {
     if (!text.trim()) return text
 
+    if (openaiAvailable()) {
+      try { return await openaiText(SYSTEM, buildUser(context, text), { timeoutMs: 12000, maxOutput: 1500 }) }
+      catch { return text }
+    }
     if (this.useGemini) {
       try {
         const out = await geminiText(GEMINI_MODEL, SYSTEM, buildUser(context, text), {

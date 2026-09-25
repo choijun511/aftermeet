@@ -34,6 +34,8 @@ export function streamPythonPath(): string {
 }
 
 export function streamScriptPath(): string {
+  const bundled = join(resourcesRoot(), 'stream_recognizer.py')
+  if (existsSync(bundled)) return bundled
   return join(streamingRoot(), 'stream_recognizer.py')
 }
 

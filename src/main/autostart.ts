@@ -3,6 +3,7 @@
 //   麦克风空闲 → 若是「自动起录」的会议,宽限若干秒后自动停止并生成纪要
 // 手动开始的会议不会被自动停止。
 
+import { audioProbeRunning } from './permissions'
 import { MicWatcher } from './micwatch'
 import type { Session } from './session'
 
@@ -39,6 +40,7 @@ export class AutoStart {
   }
 
   private handleActive(): void {
+    if (audioProbeRunning()) return
     this.clearStopTimer()
     const st = this.session.getStatus()
     if (st.state === 'idle') {

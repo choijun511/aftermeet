@@ -33,6 +33,7 @@ export default function App(): React.JSX.Element {
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [hasKey, setHasKey] = useState(true)
   const [settings, setSettings] = useState<AppSettings>({
+    cloudAsr: true,
     autoStart: true,
     twoPass: true,
     autoMinutes: true
@@ -98,12 +99,14 @@ export default function App(): React.JSX.Element {
   const totalTodos = meetings.reduce((n, m) => n + m.todos.filter((t) => !t.done).length, 0)
 
   const startRecording = async (title = '', calendar?: CalendarEvent | null): Promise<void> => {
+    const result = await window.api.startRecording(title, calendar)
+    if (!result.ok) { setNotice(result.error || '录制启动失败'); return }
     setSegments([])
-    await window.api.startRecording(title, calendar)
     setRoute('live')
   }
   const stopRecording = async (): Promise<void> => {
-    await window.api.stopRecording()
+    const result = await window.api.stopRecording()
+    if (!result.ok) setNotice(result.error || '录制处理失败')
   }
 
   const openMeeting = (id: string): void => {

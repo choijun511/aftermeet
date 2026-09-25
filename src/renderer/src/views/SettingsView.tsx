@@ -1,6 +1,7 @@
 import React from 'react'
 import { useEffect, useState } from 'react'
-import type { AppSettings } from '../../../shared/types'
+import type { AppSettings, AfterMeetApi } from '../../../shared/types'
+import PermissionCard from './PermissionCard'
 import { IcMic, IcSparkles, IcCalendar, IcFolder, IcCheck, IcX } from '../icons'
 
 interface Props {
@@ -9,11 +10,13 @@ interface Props {
   onChange: (key: keyof AppSettings, value: boolean) => void
 }
 
-export default function SettingsView({ settings, hasKey, onChange }: Props): React.JSX.Element {
+export default function SettingsView({ settings, onChange }: Props): React.JSX.Element {
   const [feishu, setFeishu] = useState<{ available: boolean; authed: boolean } | null>(null)
+  const [models, setModels] = useState<Awaited<ReturnType<AfterMeetApi['modelStatus']>> | null>(null)
   const [dir, setDir] = useState('')
 
   useEffect(() => {
+    window.api.modelStatus().then(setModels)
     window.api.feishuStatus().then(setFeishu)
     window.api.storageInfo().then((r) => setDir(r.dir))
   }, [])
@@ -22,9 +25,10 @@ export default function SettingsView({ settings, hasKey, onChange }: Props): Rea
     <div className="content">
       <div style={{ marginBottom: 18 }}>
         <div className="page-h">设置</div>
-        <div className="page-sub">转写、纪要、自动化与存储</div>
+        <div className="page-sub">录音权限、转写、纪要与存储</div>
       </div>
 
+      <PermissionCard />
       <div className="grid2">
         {/* 转写 */}
         <div className="set-card">
@@ -36,17 +40,23 @@ export default function SettingsView({ settings, hasKey, onChange }: Props): Rea
           </div>
           <ToggleRow
             title="停止后高精度重转"
-            desc="录制结束用 whisper 大模型带上下文重转全程,更准(耗时略增)"
+            desc="录制结束重新处理完整录音；云端不可用时回退本地 Whisper"
             on={settings.twoPass}
             onToggle={() => onChange('twoPass', !settings.twoPass)}
+          />
+          <ToggleRow
+            title="Qwen 云端精转"
+            desc="开启后将录音上传至阿里云转写并区分说话人；关闭后仅使用本地 Whisper。需同时开启高精度重转。"
+            on={settings.cloudAsr}
+            onToggle={() => onChange('cloudAsr', !settings.cloudAsr)}
           />
           <div className="tile" style={{ padding: '12px 14px', marginTop: 12, fontSize: 12.5 }}>
             <span className="muted">引擎</span>
             <div style={{ fontWeight: 600, marginTop: 2 }}>
-              sherpa-onnx 实时字幕 + whisper large-v3-turbo 精转
+              本地实时字幕 + {settings.cloudAsr ? 'Qwen 云端精转' : 'Whisper 本地精转'}
             </div>
             <div className="muted" style={{ marginTop: 6, fontSize: 11.5 }}>
-              🔒 音频全程本地处理,从不出网
+              {models?.qwen ? 'Qwen 密钥已配置' : 'Qwen 密钥未配置，将使用本地精转'}。长录音自动分段；不同分段的说话人编号独立。
             </div>
           </div>
         </div>
@@ -61,16 +71,16 @@ export default function SettingsView({ settings, hasKey, onChange }: Props): Rea
           </div>
           <ToggleRow
             title="录制结束自动生成纪要"
-            desc="停止后用 Gemini 生成主题、要点、决议、待办"
+            desc="默认 Luna 生成纪要；会议详情可点 Sol 深度分析"
             on={settings.autoMinutes}
             onToggle={() => onChange('autoMinutes', !settings.autoMinutes)}
           />
-          <div className="opt-tile" style={{ marginTop: 12, cursor: 'default', borderColor: hasKey ? 'var(--green)' : 'transparent' }}>
-            <StatusDot ok={hasKey} />
+          <div className="opt-tile" style={{ marginTop: 12, cursor: 'default', borderColor: models?.openai ? 'var(--green)' : 'transparent' }}>
+            <StatusDot ok={!!models?.openai} />
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: 13 }}>Gemini API Key</div>
+              <div style={{ fontWeight: 700, fontSize: 13 }}>OpenAI API Key</div>
               <div className="muted" style={{ fontSize: 11.5 }}>
-                {hasKey ? '已配置,可生成纪要与问答' : '未配置,将只转写。请在 .env 中填入 GEMINI_API_KEY'}
+                {models?.openai ? `已配置：${models.standard} / ${models.deep}` : '未配置，请在本机 .env 中填写 OPENAI_API_KEY'}
               </div>
             </div>
           </div>

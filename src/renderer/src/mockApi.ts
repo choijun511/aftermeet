@@ -76,6 +76,10 @@ export function installMockApi(): void {
     : []
 
   const api: AfterMeetApi = {
+    testSystemAudio: async () => ({ ok: true, message: '系统音频采集可启动。' }),
+    getPermissions: async () => ({ supported: true, microphone: 'granted', screen: 'denied' }),
+    requestMicrophonePermission: async () => ({ supported: true, microphone: 'granted', screen: 'denied' }),
+    openPermissionSettings: async () => {},
     startRecording: async () => ({ ok: true, meetingId: 'm_new' }),
     stopRecording: async () => ({ ok: true }),
     listTodayMeetings: async () => ({ ok: true, events: [] }),
@@ -124,14 +128,15 @@ export function installMockApi(): void {
     }),
     renameMeeting: async () => ({ ok: true }),
     askMeeting: async (_id, q) => ({ ok: true, answer: `关于「${q}」:根据这场会议的转写,主要提到了首日留存提升到 38%。` }),
-    getSettings: async () => ({ autoStart: true, twoPass: true, autoMinutes: true }),
-    setSetting: async (k, v) => ({ autoStart: true, twoPass: true, autoMinutes: true, [k]: v }),
+    getSettings: async () => ({ cloudAsr: true, autoStart: true, twoPass: true, autoMinutes: true }),
+    setSetting: async (k, v) => ({ cloudAsr: true, autoStart: true, twoPass: true, autoMinutes: true, [k]: v }),
     storageInfo: async () => ({ dir: '~/Library/Application Support/AfterMeet/transcripts' }),
     openPath: async () => {},
     getState: async () => status,
     listMeetings: async () => (empty ? [] : MEETINGS),
     getMeeting: async (id) => MEETINGS.find((m) => m.id === id) ?? null,
     deleteMeeting: async () => ({ ok: true }),
+    modelStatus: async () => ({ openai: true, qwen: true, standard: 'gpt-5.6-luna', deep: 'gpt-5.6-sol', asr: 'qwen-audio-3.0-asr-flash-filetrans' }),
     regenerate: async () => ({ ok: true }),
     toggleTodo: async () => ({ ok: true }),
     openTranscriptsFolder: async () => {},

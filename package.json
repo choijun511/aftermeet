@@ -13,7 +13,8 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "dist:mac": "npm run build:helper && npm run bundle:whisper && electron-vite build && electron-builder --mac",
-    "postinstall": "npm run build:helper || true"
+    "postinstall": "npm run build:helper || true",
+    "test:cloud": "node scripts/test-cloud.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",

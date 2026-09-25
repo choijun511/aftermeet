@@ -1,4 +1,5 @@
 import React from 'react'
+import AudioHealthCard from './AudioHealthCard'
 import { useEffect, useRef, useState } from 'react'
 import type { CalendarEvent, Meeting, StatusEvent, TranscriptSegment } from '../../../shared/types'
 import { fmtClock, fmtTs, hhmm } from '../util'
@@ -89,7 +90,7 @@ function LiveRecording({
           <span className="rec-live-dot" />
           <div>
             <div className="page-h" style={{ fontSize: 19 }}>
-              {busy ? '正在生成纪要…' : '录制中'}
+              {status.state === 'starting' ? '等待音频输入…' : status.state === 'transcribing' ? '正在转写…' : busy ? '正在生成纪要…' : '录制中'}
             </div>
             <div className="page-sub">{current?.title || '未命名会议'}</div>
           </div>
@@ -98,6 +99,8 @@ function LiveRecording({
             {fmtClock(status.durationSec)}
           </div>
         </div>
+
+        {status.message && <div className="tile" role="status" style={{ padding: '12px 14px' }}>{status.message}</div>}
 
         <div
           className="card pad-lg"
@@ -120,13 +123,13 @@ function LiveRecording({
             {finals.map((s) => (
               <div key={s.id} className="live-row">
                 <div className="ts tnum">{fmtTs(s.t)}</div>
-                <p className="tx">{s.text}</p>
+                <div className="tx"><span className="muted" style={{ fontSize: 10, display: 'block' }}>{s.final ? '已确认' : '本地校对中'}</span><p style={{ margin: 0 }}>{s.text}</p>{s.originalText && s.originalText !== s.text && <details style={{ fontSize: 12, marginTop: 6 }}><summary>查看识别原稿</summary>{s.originalText}</details>}</div>
               </div>
             ))}
             {pending && (
               <div className="live-row pending">
                 <div className="ts tnum">{fmtTs(pending.t)}</div>
-                <p className="tx">{pending.text}</p>
+                <p className="tx"><span className="muted" style={{ fontSize: 10, display: 'block' }}>识别中 · 本行自动更新</span>{pending.text}</p>
               </div>
             )}
           </div>
@@ -143,6 +146,8 @@ function LiveRecording({
         >
           <IcStop size={16} /> {busy ? '处理中…' : '停止并生成纪要'}
         </button>
+
+        <AudioHealthCard health={status.audioHealth} busy={busy} />
 
         {/* 关联会议(黑卡) */}
         <div className="dark-card" style={{ padding: '18px 20px' }}>
@@ -257,7 +262,7 @@ function StartPanel({
             准备录制
           </div>
           <div className="page-sub" style={{ textAlign: 'center', marginBottom: 20 }}>
-            系统音频与麦克风将在本地转写
+            会中字幕在本地生成；开启云端精转后，会后录音会上传至 Qwen
           </div>
 
           <input
@@ -306,7 +311,7 @@ function StartPanel({
           </button>
           {!hasKey && (
             <div className="muted" style={{ fontSize: 11.5, textAlign: 'center', marginTop: 12 }}>
-              未配置 Gemini Key,将只转写、不自动生成纪要
+              未配置 OpenAI Key,将只转写、不自动生成纪要
             </div>
           )}
         </div>

@@ -443,10 +443,10 @@ function FirstUse({
   onStart: () => void
 }): React.JSX.Element {
   const steps = [
-    { done: true, title: '安装完成', desc: 'AfterMeet 已就绪,音频与转写全部在本地处理' },
+    { done: true, title: '安装完成', desc: 'AfterMeet 已就绪：本地实时字幕，可选云端精转' },
     {
       done: hasKey,
-      title: '配置 Gemini API Key',
+      title: '配置 OpenAI API Key',
       desc: hasKey ? '已检测到密钥,可生成会议纪要' : '在设置 · 纪要生成中填入密钥后即可自动生成纪要'
     },
     {
@@ -472,7 +472,7 @@ function FirstUse({
             欢迎使用 AfterMeet
           </div>
           <div className="page-sub" style={{ fontSize: 13.5, marginBottom: 22 }}>
-            本地转写 · AI 纪要 · 音频不出网
+            本地字幕 · Qwen 精转 · Luna / Sol 纪要
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'left' }}>

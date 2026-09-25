@@ -3,6 +3,7 @@
 export type RecState = 'idle' | 'starting' | 'recording' | 'transcribing' | 'summarizing' | 'error'
 
 export interface TranscriptSegment {
+  originalText?: string
   id: string
   /** 相对录制开始的秒数 */
   t: number
@@ -64,6 +65,11 @@ export interface MeetingPrep {
 }
 
 export interface Meeting {
+  notesModel?: string
+  analysisMode?: 'standard' | 'deep'
+  transcriptionModel?: string
+  transcriptionWarning?: string
+  speakerSegments?: { startMs: number; endMs: number; text: string; speaker: string }[]
   id: string
   title: string
   startedAt: number
@@ -90,7 +96,14 @@ export interface Meeting {
 }
 
 /** 录制状态推送 */
+export interface AudioHealth {
+  system: { rms: number; receiving: boolean }
+  microphone: { rms: number; receiving: boolean }
+  micIncluded: boolean
+  silenceSeconds: number
+}
 export interface StatusEvent {
+  audioHealth?: AudioHealth
   state: RecState
   durationSec: number
   /** 麦克风/系统音频是否活跃 */
@@ -101,6 +114,7 @@ export interface StatusEvent {
 
 /** 应用设置(持久化在 settings.json) */
 export interface AppSettings {
+  cloudAsr: boolean
   /** 自动起录(麦克风活跃即开录) */
   autoStart: boolean
   /** 停止后用高精度模型重转全文(两遍精转) */
@@ -110,7 +124,22 @@ export interface AppSettings {
 }
 
 /** 渲染进程通过 window.api 调用主进程的接口契约 */
+export type RecordingPermission = 'not-determined' | 'granted' | 'denied' | 'restricted' | 'unknown'
+export interface PermissionStatus {
+  supported: boolean
+  microphone: RecordingPermission
+  screen: RecordingPermission
+}
+
+export interface AudioPermissionProbe {
+  ok: boolean
+  message: string
+}
 export interface AfterMeetApi {
+  testSystemAudio(): Promise<AudioPermissionProbe>
+  getPermissions(): Promise<PermissionStatus>
+  requestMicrophonePermission(): Promise<PermissionStatus>
+  openPermissionSettings(kind: 'microphone' | 'screen'): Promise<void>
   startRecording(
     title: string,
     calendar?: CalendarEvent | null
@@ -151,7 +180,8 @@ export interface AfterMeetApi {
   listMeetings(): Promise<Meeting[]>
   getMeeting(id: string): Promise<Meeting | null>
   deleteMeeting(id: string): Promise<{ ok: boolean }>
-  regenerate(id: string): Promise<{ ok: boolean; error?: string }>
+  regenerate(id: string, mode?: 'standard' | 'deep'): Promise<{ ok: boolean; error?: string }>
+  modelStatus(): Promise<{ openai: boolean; qwen: boolean; standard: string; deep: string; asr: string }>
   toggleTodo(meetingId: string, todoId: string): Promise<{ ok: boolean }>
   openTranscriptsFolder(): Promise<void>
   hasApiKey(): Promise<boolean>

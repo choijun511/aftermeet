@@ -2,6 +2,8 @@
 // 停止时持久化会议并调用 Claude 生成纪要/总结/待办。
 
 import {
+  mkdtempSync,
+  rmSync,
   createWriteStream,
   WriteStream,
   readFileSync,
@@ -11,6 +13,10 @@ import {
   unlinkSync
 } from 'fs'
 import { join } from 'path'
+import { tmpdir } from 'os'
+import { transcribeQwenPcm, qwenAvailable, pcmWav } from './qwen'
+import { safeError } from './cloud-http'
+import type { AnalysisMode } from './openai'
 import { AudioCapture } from './audio'
 import { Transcriber, transcribeFile } from './whisper'
 import { StreamingRecognizer } from './streaming'
@@ -79,6 +85,8 @@ export class Session {
   private polisher: Polisher | null = null
   private segments: TranscriptSegment[] = []
   private polishChain: Promise<void> = Promise.resolve()
+  private captureWarning = ''
+  private stopping = false
 
   constructor(send: Send) {
     this.send = send
@@ -88,13 +96,15 @@ export class Session {
     return {
       state: this.state,
       durationSec: this.startMs ? Math.floor((Date.now() - this.startMs) / 1000) : 0,
-      active: this.audio?.running ?? false,
+      active: !!this.audio?.health && (this.audio.health.system.rms > 0.003 || (this.audio.health.micIncluded && this.audio.health.microphone.rms > 0.015)),
+      audioHealth: this.audio?.health,
       meetingId: this.meeting?.id
     }
   }
 
   private emitStatus(message?: string): void {
     const s = this.getStatus()
+    if (this.captureWarning) s.message = this.captureWarning
     if (message) s.message = message
     this.send('status', s)
   }
@@ -103,7 +113,7 @@ export class Session {
     title: string,
     calendar?: CalendarEvent | null
   ): { ok: boolean; meetingId?: string; error?: string } {
-    if (this.state === 'recording' || this.state === 'starting') {
+    if (this.meeting || this.stopping || !['idle', 'error'].includes(this.state)) {
       return { ok: false, error: '已有会议正在录制' }
     }
     const now = new Date()
@@ -129,6 +139,7 @@ export class Session {
     this.archive.write(`# ${this.meeting.title}\n# 开始:${now.toLocaleString('zh-CN')}\n\n`)
 
     this.segCount = 0
+    this.captureWarning = ''
     this.segments = []
     this.polishChain = Promise.resolve()
     this.polisher = new Polisher()
@@ -143,15 +154,19 @@ export class Session {
     if (StreamingRecognizer.available()) {
       this.streaming = new StreamingRecognizer({
         onPartial: (text) => this.onStreamPartial(text),
-        onFinal: (text) => this.onStreamFinal(text),
-        onError: (msg) => console.warn('[stream]', msg)
+        onFinal: (text, correction) => this.onStreamFinal(text, correction),
+        onError: (msg) => {
+          console.warn('[stream]', msg)
+          if (this.stopping || this.transcriber) return
+          void this.streaming?.stop()
+          this.streaming = null
+          this.startWhisperFallback()
+          this.send('notice', '实时字幕引擎不可用，已切换为每 5 秒转写。')
+        }
       })
       this.streaming.start()
     } else {
-      this.transcriber = new Transcriber({
-        language: process.env.AFTERMEET_LANG || 'auto',
-        onSegment: ({ t, text }) => this.onSegment(t, text)
-      })
+      this.startWhisperFallback()
     }
 
     // 完整混音 PCM 落盘(raw s16le 16k mono),用于会后两遍精转
@@ -161,11 +176,19 @@ export class Session {
     // 音频采集:PCM 喂实时引擎 + 存完整混音
     this.audio = new AudioCapture({
       onData: (chunk) => {
+        if (this.state === 'starting') {
+          this.state = 'recording'
+          this.emitStatus()
+        }
         if (this.streaming) this.streaming.write(chunk)
         else this.transcriber?.pushPcm(chunk)
         this.audioRaw?.write(chunk)
       },
-      onError: (msg) => this.onAudioError(msg)
+      onError: (msg) => this.onAudioError(msg),
+      onWarning: (msg) => {
+        this.captureWarning = msg
+        this.emitStatus()
+      }
     })
     const res = this.audio.start()
     if (!res.ok) {
@@ -175,14 +198,21 @@ export class Session {
       return { ok: false, error: res.error }
     }
 
-    this.state = 'recording'
-    this.emitStatus()
+    this.emitStatus('正在等待音频输入…')
     this.timer = setInterval(() => this.emitStatus(), 1000)
     return { ok: true, meetingId: id }
   }
 
   private streamElapsed(): number {
     return this.startMs ? (Date.now() - this.startMs) / 1000 : 0
+  }
+
+  private startWhisperFallback(): void {
+    this.transcriber = new Transcriber({
+      language: process.env.AFTERMEET_LANG || 'auto',
+      onSegment: ({ t, text }) => this.onSegment(t, text),
+      onError: (message) => { this.captureWarning = message; this.emitStatus() }
+    })
   }
 
   // 流式 partial:更新中的一行(固定 id 'live',渲染端原地更新)
@@ -194,7 +224,7 @@ export class Session {
   }
 
   // 流式 final:一句定稿
-  private onStreamFinal(text: string): void {
+  private onStreamFinal(text: string, correction?: Promise<string>): void {
     if (!this.meeting) return
     const simp = toSimplified(text).trim()
     if (!simp) return
@@ -203,7 +233,16 @@ export class Session {
       id: `s_${this.segCount}`,
       t: this.streamElapsed(),
       text: simp,
-      final: true
+      final: !correction
+    }
+    if (correction) {
+      this.polishChain = this.polishChain.then(async () => {
+        const corrected = await correction.catch(() => simp)
+        seg.originalText = simp
+        seg.text = toSimplified(corrected)
+        seg.final = true
+        this.send('segment', { ...seg })
+      })
     }
     this.segments.push(seg)
     this.archive?.write(`[${formatT(seg.t)}] ${simp}\n`)
@@ -250,18 +289,25 @@ export class Session {
   }
 
   private onAudioError(msg: string): void {
-    this.state = 'error'
+    console.error('[capture]', msg)
+    this.captureWarning = msg
+    this.send('notice', msg)
     this.emitStatus(msg)
+    if (!this.stopping) void this.stop()
   }
 
   async stop(): Promise<{ ok: boolean; meetingId?: string; error?: string }> {
     if (!this.meeting) return { ok: false, error: '当前没有进行中的会议' }
+    if (this.stopping) return { ok: false, error: '正在结束录制，请稍候' }
+    this.stopping = true
     const meeting = this.meeting
+    meeting.endedAt = Date.now()
+    meeting.durationSec = Math.floor((meeting.endedAt - meeting.startedAt) / 1000)
     if (this.timer) clearInterval(this.timer)
     this.timer = null
 
-    this.audio?.stop()
     this.state = 'transcribing'
+    await this.audio?.stop()
     this.emitStatus('正在处理收尾音频…')
 
     // 收尾实时引擎
@@ -273,6 +319,7 @@ export class Session {
       this.emitStatus('正在校对转写…')
       await this.polishChain
     }
+    await this.polishChain
     // 先用实时片段拼一个粗稿(作为兜底;下面会被 whisper 两遍精转覆盖)
     meeting.transcript = this.segments.map((s) => s.text).join(' ')
     // 清掉渲染端的 partial 行
@@ -290,8 +337,6 @@ export class Session {
     // ★ 两遍精转:对完整录音整段转写(带上下文,远好于 5s 分块),作为权威转写
     await this.fullTranscribe(meeting)
 
-    meeting.endedAt = Date.now()
-    meeting.durationSec = Math.floor((meeting.endedAt - meeting.startedAt) / 1000)
     upsertMeeting(meeting)
 
     // 生成纪要(异步,失败不影响转写已保存);用户可在设置关闭自动生成
@@ -306,8 +351,12 @@ export class Session {
     this.meeting = null
     this.transcriber = null
     this.audio = null
+    this.stopping = false
+    const error = meeting.llmError
+    this.captureWarning = ''
     this.emitStatus()
-    return { ok: true, meetingId: meeting.id }
+    if (error) this.send('notice', error)
+    return { ok: !error, meetingId: meeting.id, error }
   }
 
   /** 两遍精转:整段录音带上下文转写,覆盖实时粗稿 */
@@ -326,7 +375,30 @@ export class Session {
       if (!this.audioRawPath || !existsSync(this.audioRawPath)) return
       if (statSync(this.audioRawPath).size < 32000) return // < ~1s,不值当
       this.state = 'transcribing'
-      this.emitStatus('正在精转全程录音(带上下文,更准)…')
+      if (getSetting('cloudAsr', qwenAvailable()) && qwenAvailable()) {
+        try {
+          const cloud = await transcribeQwenPcm(this.audioRawPath, (message) => this.emitStatus(message), async (pcm) => {
+            const dir = mkdtempSync(join(tmpdir(), 'aftermeet-qwen-fallback-'))
+            try {
+              const wav = join(dir, 'chunk.wav')
+              writeFileSync(wav, pcmWav(pcm))
+              return toSimplified(await transcribeFile(wav, process.env.AFTERMEET_LANG || 'auto'))
+            } finally { rmSync(dir, { recursive: true, force: true }) }
+          })
+          meeting.transcript = cloud.text
+          meeting.speakerSegments = cloud.sentences
+          meeting.transcriptionModel = cloud.model
+          meeting.transcriptionWarning = cloud.warnings.length ? cloud.warnings.join('；') : undefined
+          console.log(`[qwen] 完成：${cloud.sentences.length} 段，${cloud.text.length} 字`)
+          return
+        } catch (e) {
+          meeting.transcriptionWarning = `Qwen 精转失败，已回退本地 Whisper：${safeError(e)}`
+          console.warn('[qwen]', meeting.transcriptionWarning)
+          this.send('notice', meeting.transcriptionWarning)
+        }
+      }
+      meeting.transcriptionModel = 'whisper-large-v3-turbo'
+      this.emitStatus('正在使用本地 Whisper 精转全程录音…')
       const wav = this.audioRawPath.replace(/\.pcm$/, '.wav')
       pcmToWav(this.audioRawPath, wav)
       const full = await transcribeFile(wav, process.env.AFTERMEET_LANG || 'auto')
@@ -355,59 +427,33 @@ export class Session {
         }
       }
     } catch (e) {
-      console.error('[full] 精转失败,保留实时粗稿:', e instanceof Error ? e.message : e)
+      meeting.transcriptionWarning = `精转失败，已保留实时稿：${safeError(e)}`
+      console.error('[full]', meeting.transcriptionWarning)
     }
   }
 
   private async runLlm(meeting: Meeting): Promise<void> {
-    if (!meeting.transcript.trim()) {
-      meeting.llmError = '转写为空,跳过纪要生成'
-      upsertMeeting(meeting)
-      this.send('meeting-updated', meeting)
-      return
-    }
-    if (!hasApiKey()) {
-      meeting.llmError = '未配置 ANTHROPIC_API_KEY'
-      upsertMeeting(meeting)
-      this.send('meeting-updated', meeting)
-      return
-    }
-    try {
-      const res = await generateNotes(meeting.transcript)
-      meeting.minutes = res.minutes
-      meeting.summary = res.summary
-      meeting.todos = res.todos.map((t, i) => ({
-        id: `t_${meeting.id}_${i}`,
-        text: t.text,
-        owner: t.owner,
-        due: t.due,
-        done: false
-      }))
-      meeting.llmError = undefined
-    } catch (e) {
-      meeting.llmError = e instanceof Error ? e.message : String(e)
-    }
-    upsertMeeting(meeting)
-    this.send('meeting-updated', meeting)
+    await this.runLlmFrom(meeting, meeting.transcript)
   }
 
   /** 对已有会议重新生成纪要(用其 notesSource 对应的转写) */
-  async regenerate(id: string): Promise<{ ok: boolean; error?: string }> {
+  async regenerate(id: string, mode: AnalysisMode = 'standard'): Promise<{ ok: boolean; error?: string }> {
+    if (this.state !== 'idle' || this.meeting) return { ok: false, error: '请等待当前录制或处理完成' }
     const meeting = getMeeting(id)
     if (!meeting) return { ok: false, error: '会议不存在' }
     const text =
       meeting.notesSource === 'feishu' && meeting.feishuTranscript
         ? meeting.feishuTranscript
         : meeting.transcript
+    this.state = 'summarizing'
     this.send('status', { state: 'summarizing', durationSec: 0, active: false, meetingId: id })
-    await this.runLlmFrom(meeting, text)
-    this.send('status', this.getStatus())
+    try { await this.runLlmFrom(meeting, text, mode) } finally { this.state = 'idle'; this.send('status', this.getStatus()) }
     if (meeting.llmError) return { ok: false, error: meeting.llmError }
     return { ok: true }
   }
 
   /** 用指定转写文本生成纪要/待办(供本地/飞书妙记两路复用) */
-  private async runLlmFrom(meeting: Meeting, transcript: string): Promise<void> {
+  private async runLlmFrom(meeting: Meeting, transcript: string, mode: AnalysisMode = 'standard'): Promise<void> {
     if (!transcript.trim()) {
       meeting.llmError = '转写为空,跳过纪要生成'
       upsertMeeting(meeting)
@@ -415,13 +461,15 @@ export class Session {
       return
     }
     if (!hasApiKey()) {
-      meeting.llmError = '未配置 API Key'
+      meeting.llmError = '未配置 OPENAI_API_KEY，无法生成 AI 纪要。'
       upsertMeeting(meeting)
       this.send('meeting-updated', meeting)
       return
     }
     try {
-      const res = await generateNotes(transcript)
+      const res = await generateNotes(transcript, mode)
+      meeting.notesModel = res.model
+      meeting.analysisMode = mode
       meeting.minutes = res.minutes
       meeting.summary = res.summary
       meeting.todos = res.todos.map((t, i) => ({
@@ -429,11 +477,11 @@ export class Session {
         text: t.text,
         owner: t.owner,
         due: t.due,
-        done: false
+        done: meeting.todos.find((old) => old.text === t.text && old.owner === t.owner)?.done || false
       }))
       meeting.llmError = undefined
     } catch (e) {
-      meeting.llmError = e instanceof Error ? e.message : String(e)
+      meeting.llmError = safeError(e)
     }
     upsertMeeting(meeting)
     this.send('meeting-updated', meeting)
@@ -479,6 +527,7 @@ export class Session {
     this.audioRaw?.end()
     this.audioRaw = null
     void this.streaming?.stop()
+    void this.audio?.stop()
     this.streaming = null
     this.audio = null
     this.transcriber = null

@@ -13,6 +13,8 @@ files:
 
 # 随 .app 分发的自包含运行时(放到 Contents/Resources/ 下,asar 之外)
 extraResources:
+  - from: resources/stream_recognizer.py
+    to: stream_recognizer.py
   - from: resources/bin
     to: bin
     filter: ['**/*']
@@ -24,10 +26,7 @@ extraResources:
     filter: ['ggml-large-v3-turbo.bin', 'ggml-silero-v5.1.2.bin']
   # 注:流式 ASR 运行时(venv+sherpa模型+脚本)不进 bundle(含系统 python 符号链接+第三方 .so,
   # 会导致 codesign 深度校验失败),改放 userData/streaming 下,见 paths.ts::streamingRoot。
-  # 个人构建:把 API key 一并带上(分发给他人时请删掉此条,改用 userData/.env)
-  - from: .env
-    to: .env
-    filter: ['.env']
+  # 密钥只从 userData/.env 读取，不随 App 分发。
 
 asarUnpack:
   - '**/*.node'
@@ -38,7 +37,7 @@ mac:
   target:
     - target: dir
     - target: dmg
-  # 用自签名证书签名(稳定身份,TCC 屏幕录制授权可永久绑定,跨重新打包不失效)。
+  # 用自签名证书签名(稳定身份,减少更新后的 TCC 授权失配；首次切换身份需重新授权)。
   # 不做 hardened runtime / 公证:本地个人使用。
   hardenedRuntime: false
   gatekeeperAssess: false

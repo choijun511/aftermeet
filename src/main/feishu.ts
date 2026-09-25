@@ -2,25 +2,33 @@
 // 只读日历,不改任何飞书数据。lark-cli 会自动刷新 token;刷新失败则报错让 UI 提示重新授权。
 
 import { spawn } from 'child_process'
+import { app } from 'electron'
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import type { CalendarEvent } from '../shared/types'
 
-const CANDIDATES = ['/usr/local/bin/lark-cli', '/opt/homebrew/bin/lark-cli']
+function candidates(): string[] {
+  return [
+    process.env.LARK_CLI || '',
+    join(app.isPackaged ? process.resourcesPath : join(app.getAppPath(), 'resources'), 'bin', 'lark-cli'),
+    '/usr/local/bin/lark-cli', '/opt/homebrew/bin/lark-cli',
+    ...(process.env.PATH || '').split(':').filter(Boolean).map((p) => join(p, 'lark-cli'))
+  ].filter(Boolean)
+}
 
 function larkCliPath(): string {
-  if (process.env.LARK_CLI && existsSync(process.env.LARK_CLI)) return process.env.LARK_CLI
-  for (const p of CANDIDATES) if (existsSync(p)) return p
+  for (const p of candidates()) if (existsSync(p)) return p
   return 'lark-cli'
 }
 
 export function feishuAvailable(): boolean {
-  return existsSync('/usr/local/bin/lark-cli') || existsSync('/opt/homebrew/bin/lark-cli')
+  return candidates().some((p) => existsSync(p))
 }
 
 function runLark(args: string[], timeoutMs = 20000): Promise<string> {
   return new Promise((resolve, reject) => {
+    if (!feishuAvailable()) { reject(new Error('未安装飞书日历工具，请重新安装 AfterMeet 或配置 LARK_CLI。')); return }
     const proc = spawn(larkCliPath(), args, { stdio: ['ignore', 'pipe', 'pipe'] })
     let out = ''
     let err = ''
@@ -34,10 +42,19 @@ function runLark(args: string[], timeoutMs = 20000): Promise<string> {
       clearTimeout(timer)
       reject(e)
     })
-    proc.on('exit', (code) => {
+    proc.on('close', (code) => {
       clearTimeout(timer)
       if (code === 0) resolve(out)
-      else reject(new Error(err.trim() || `lark-cli 退出码 ${code}`))
+      else {
+        let message = err.trim() || `lark-cli 退出码 ${code}`
+        try {
+          const failure = JSON.parse(out)
+          message = failure.error?.subtype === 'not_configured'
+            ? '飞书尚未配置或登录，请先连接飞书账号。'
+            : failure.error?.message || message
+        } catch { /* not JSON */ }
+        reject(new Error(message))
+      }
     })
   })
 }
@@ -106,12 +123,7 @@ export async function listMeetingsByDate(dayOffset: number): Promise<CalendarEve
   const y = target.getFullYear()
   const mo = String(target.getMonth() + 1).padStart(2, '0')
   const d = String(target.getDate()).padStart(2, '0')
-  let raw: string
-  try {
-    raw = await runLark(['calendar', '+agenda', '--date', `${y}-${mo}-${d}`, '--format', 'json'])
-  } catch {
-    raw = await runLark(['calendar', '+agenda', '--format', 'json'])
-  }
+  const raw = await runLark(['calendar', '+agenda', '--start', `${y}-${mo}-${d}`, '--format', 'json'])
   let parsed: { ok?: boolean; data?: RawEvent[] }
   try {
     parsed = JSON.parse(raw)
@@ -126,7 +138,8 @@ export async function listMeetingsByDate(dayOffset: number): Promise<CalendarEve
 export async function feishuStatus(): Promise<{ available: boolean; authed: boolean }> {
   if (!feishuAvailable()) return { available: false, authed: false }
   try {
-    await runLark(['calendar', '+agenda', '--format', 'json'], 12000)
+    const result = JSON.parse(await runLark(['calendar', '+agenda', '--format', 'json'], 12000))
+    if (result.ok === false) return { available: true, authed: false }
     return { available: true, authed: true }
   } catch {
     return { available: true, authed: false }

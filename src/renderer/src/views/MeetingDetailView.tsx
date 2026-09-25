@@ -35,6 +35,7 @@ export default function MeetingDetailView({
 }: Props): React.JSX.Element {
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState('')
+  const [generationError, setGenerationError] = useState('')
   const [regenerating, setRegenerating] = useState(false)
   const [chat, setChat] = useState<ChatMsg[]>([])
   const [q, setQ] = useState('')
@@ -83,11 +84,14 @@ export default function MeetingDetailView({
     }
     setEditing(false)
   }
-  const regen = async (): Promise<void> => {
+  const regen = async (mode: 'standard' | 'deep' = 'standard'): Promise<void> => {
+    setGenerationError('')
     setRegenerating(true)
-    await window.api.regenerate(m.id)
-    onChanged()
-    setRegenerating(false)
+    try {
+      const result = await window.api.regenerate(m.id, mode)
+      if (!result.ok) setGenerationError(result.error || '生成失败')
+      onChanged()
+    } catch (e) { setGenerationError(e instanceof Error ? e.message : '生成失败') } finally { setRegenerating(false) }
   }
   const del = async (): Promise<void> => {
     if (!confirm(`删除会议「${m.title}」?此操作不可恢复。`)) return
@@ -200,8 +204,11 @@ export default function MeetingDetailView({
             {fmtWhen(m.startedAt)} · {fmtDuration(m.durationSec)} · {m.transcript.length} 字
           </div>
         </div>
-        <button className="btn ghost" onClick={regen} disabled={regenerating}>
+        <button className="btn ghost" onClick={() => regen()} disabled={regenerating || processing}>
           {regenerating ? <span className="spin" /> : <IcRefresh size={14} />} 重新生成
+        </button>
+        <button className="btn soft" onClick={() => regen('deep')} disabled={regenerating || processing || !m.transcript.trim()}>
+          Sol 深度分析
         </button>
         <button className="btn ghost" onClick={() => window.api.openTranscriptsFolder()}>
           <IcFolder size={14} />
@@ -211,6 +218,11 @@ export default function MeetingDetailView({
         </button>
       </div>
 
+      {(m.notesModel || m.transcriptionModel) && <div className="muted" style={{ marginBottom: 12 }}>
+        转写：{m.transcriptionModel || '本地实时字幕'} · 纪要：{m.notesModel || '尚未生成'}
+      </div>}
+      {m.transcriptionWarning && <div className="banner err" style={{ marginBottom: 12 }}>{m.transcriptionWarning}</div>}
+      {generationError && <div className="banner err" style={{ marginBottom: 12 }}>{generationError}</div>}
       {m.llmError && (
         <div className="banner err" style={{ marginBottom: 16 }}>
           纪要生成未完成:{m.llmError}。转写已保存,可点「重新生成」重试。

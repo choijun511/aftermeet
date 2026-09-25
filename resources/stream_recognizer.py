@@ -55,13 +55,14 @@ def main():
         enable_endpoint_detection=True,
         rule1_min_trailing_silence=2.4,
         rule2_min_trailing_silence=1.0,
-        rule3_min_utterance_length=300,
+        rule3_min_utterance_length=30,
     )
     emit({"type": "ready"})
 
     stream = recognizer.create_stream()
     import numpy as np
 
+    consumed = 0
     last_partial = ""
     CHUNK = 3200 * 2  # 200ms 的 s16le 字节数
 
@@ -71,6 +72,7 @@ def main():
             break
         if len(data) % 2 == 1:
             data = data[:-1]
+        consumed += len(data)
         samples = np.frombuffer(data, dtype=np.int16).astype(np.float32) / 32768.0
         stream.accept_waveform(16000, samples)
         while recognizer.is_ready(stream):
@@ -80,8 +82,7 @@ def main():
         if isinstance(text, bytes):
             text = text.decode("utf-8", "ignore")
         if recognizer.is_endpoint(stream):
-            if text:
-                emit({"type": "final", "text": text})
+            emit({"type": "final", "text": text, "bytes": consumed})
             recognizer.reset(stream)
             last_partial = ""
         else:
@@ -97,7 +98,7 @@ def main():
     if isinstance(tail, bytes):
         tail = tail.decode("utf-8", "ignore")
     if tail and tail.strip():
-        emit({"type": "final", "text": tail.strip()})
+        emit({"type": "final", "text": tail.strip(), "bytes": consumed})
     emit({"type": "eof"})
 
 if __name__ == "__main__":

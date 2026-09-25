@@ -26,6 +26,7 @@ const SILENCE_RMS = 0.01 // 经验阈值,低于此视为静音(略高以躲开�
 const THREADS = Math.max(4, Math.min(8, cpus().length))
 
 export interface WhisperOpts {
+  onError?: (message: string) => void
   language?: string // 'auto' | 'zh' | 'en' ...
   onSegment: (seg: { t: number; text: string }) => void
 }
@@ -69,7 +70,7 @@ function rms(int16: Int16Array): number {
 // 会后两遍精转:对完整录音做一次「带完整上下文」的转写。
 // 大模型在整段音频上(30s 窗口 + 上下文)远比 5s 孤立分块准确、且几乎不幻觉。
 export function transcribeFile(wavPath: string, language = 'auto'): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     // 注意:不要用 -sns(suppress-non-speech)!实测它在长会议音频上会把 ~90% 的真实语音
     // 当非语音抑制掉(68分钟只剩 6946 字 vs 无此参数 72178 字)。整段带上下文转写不需要它。
     const args = [
@@ -85,12 +86,20 @@ export function transcribeFile(wavPath: string, language = 'auto'): Promise<stri
       cwd: whisperCwd()
     })
     let out = ''
+    let err = ''
     proc.stdout.on('data', (d) => (out += d.toString()))
+    proc.stderr.on('data', (d) => (err = (err + d.toString()).slice(-4000)))
     proc.on('error', (e) => {
       console.error('[whisper:full] spawn error', e.message)
-      resolve('')
+      reject(new Error(`转写引擎启动失败：${e.message}`))
     })
-    proc.on('exit', () => {
+    proc.on('close', (code, signal) => {
+      if (code !== 0) {
+        const message = `转写引擎退出（${code ?? signal}）：${err.slice(-1200)}`
+        console.error('[whisper:full]', message)
+        reject(new Error(message))
+        return
+      }
       const text = out
         .replace(/\r/g, '')
         .replace(/\[[^\]]*\]/g, '')
@@ -219,9 +228,15 @@ export class Transcriber {
         try { unlinkSync(wavPath) } catch { /* */ }
         resolve('')
       })
-      proc.on('exit', () => {
+      proc.on('close', (code, signal) => {
         try { unlinkSync(wavPath) } catch { /* */ }
-        if (err && /error|failed/i.test(err)) console.error('[whisper]', err.trim().slice(0, 200))
+        if (code !== 0) {
+          const message = `实时转写失败（${code ?? signal}）：${err.trim().slice(-1000)}`
+          console.error('[whisper]', message)
+          this.opts.onError?.(message)
+          resolve('')
+          return
+        }
         resolve(this.cleanText(out))
       })
     })
