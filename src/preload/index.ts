@@ -2,6 +2,9 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { AfterMeetApi, StatusEvent, TranscriptSegment, Meeting } from '../shared/types'
 
 const api: AfterMeetApi = {
+  preparePlayback: (id) => ipcRenderer.invoke('playback:prepare', id),
+  setPlaybackActive: (token, active) => ipcRenderer.invoke('playback:active', token, active),
+  releasePlayback: (token) => ipcRenderer.invoke('playback:release', token),
   testSystemAudio: () => ipcRenderer.invoke('permissions:testSystemAudio'),
   getPermissions: () => ipcRenderer.invoke('permissions:get'),
   requestMicrophonePermission: () => ipcRenderer.invoke('permissions:microphone'),

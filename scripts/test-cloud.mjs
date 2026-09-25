@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process'
 const dir = await mkdtemp(join(tmpdir(), 'aftermeet-tests-'))
 try {
  const outputs=[]
- for (const name of ['cloud', 'recovery', 'recovery-worker']) {
+ for (const name of ['cloud', 'recovery', 'playback', 'recovery-worker']) {
  const output = join(dir, `${name}.cjs`)
  if (name !== 'recovery-worker') outputs.push(output)
  await build({entryPoints:[name === 'recovery-worker' ? 'tests/recovery-worker.ts' : `tests/${name}.test.ts`],outfile:output,bundle:true,platform:'node',format:'cjs',plugins:[{

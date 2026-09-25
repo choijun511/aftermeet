@@ -157,7 +157,11 @@ export interface AudioPermissionProbe {
   ok: boolean
   message: string
 }
+export type PlaybackInfo = { ok: true; url: string; token: string; durationSec: number } | { ok: false; error: string }
 export interface AfterMeetApi {
+  preparePlayback(id: string): Promise<PlaybackInfo>
+  setPlaybackActive(token: string, active: boolean): Promise<boolean>
+  releasePlayback(token: string): Promise<void>
   testSystemAudio(): Promise<AudioPermissionProbe>
   getPermissions(): Promise<PermissionStatus>
   requestMicrophonePermission(): Promise<PermissionStatus>

@@ -1,6 +1,7 @@
 import React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import type { Meeting, StatusEvent } from '../../../shared/types'
+import RecordingPlayer from './RecordingPlayer'
 import ProcessingCard from './ProcessingCard'
 import { renderMarkdown } from '../md'
 import { fmtWhen, fmtDuration } from '../util'
@@ -222,6 +223,8 @@ export default function MeetingDetailView({
           <IcTrash size={14} />
         </button>
       </div>
+
+      <RecordingPlayer key={`audio-${m.id}`} meeting={m} status={status} />
 
       <ProcessingCard key={m.id} meeting={m} status={status} onChanged={onChanged} />
 

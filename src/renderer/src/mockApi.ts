@@ -80,6 +80,9 @@ export function installMockApi(): void {
     : []
 
   const api: AfterMeetApi = {
+    preparePlayback: async () => ({ ok: false, error: '浏览器演示没有本地录音，请在桌面应用中回放' }),
+    setPlaybackActive: async () => true,
+    releasePlayback: async () => {},
     testSystemAudio: async () => ({ ok: true, message: '系统音频采集可启动。' }),
     getPermissions: async () => ({ supported: true, microphone: 'granted', screen: 'denied' }),
     requestMicrophonePermission: async () => ({ supported: true, microphone: 'granted', screen: 'denied' }),

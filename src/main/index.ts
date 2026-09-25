@@ -1,10 +1,11 @@
-import { app, BrowserWindow, ipcMain, shell, systemPreferences } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, systemPreferences, protocol } from 'electron'
 import { join } from 'path'
 import { existsSync, readFileSync, appendFileSync } from 'fs'
 import { testSystemAudio, audioProbeRunning } from './permissions'
 import { Session } from './session'
 import { openaiAvailable, openaiModel } from './openai'
 import { qwenAvailable, qwenModel } from './qwen'
+import { playbackActive, playbackResponse, preparePlayback, releasePlayback, releasePlaybackOwner, setPlaybackActive } from './playback'
 import { AutoStart } from './autostart'
 import {
   listTodayMeetings,
@@ -40,6 +41,7 @@ function currentSettings(): AppSettings {
 }
 
 // 设定 app 名,使 userData = ~/Library/Application Support/AfterMeet(与设计稿一致)
+protocol.registerSchemesAsPrivileged([{ scheme: 'aftermeet-audio', privileges: { standard: true, secure: true, stream: true, supportFetchAPI: true } }])
 app.setName('AfterMeet')
 const hasInstanceLock = app.requestSingleInstanceLock()
 if (!hasInstanceLock) app.quit()
@@ -131,6 +133,11 @@ function createWindow(): void {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
+  const playbackOwner = win.webContents.id
+  win.webContents.on('destroyed', () => releasePlaybackOwner(playbackOwner))
+  win.webContents.on('render-process-gone', () => releasePlaybackOwner(playbackOwner))
+  win.webContents.on('did-start-navigation', (_event, _url, _inPlace, isMainFrame) => { if (isMainFrame) releasePlaybackOwner(playbackOwner) })
+
   // 窗口关闭后置空引用,使 send() 短路,避免向已销毁的 webContents 推送而崩溃
   win.on('closed', () => {
     win = null
@@ -138,6 +145,16 @@ function createWindow(): void {
 }
 
 function registerIpc(): void {
+  ipcMain.handle('playback:prepare', async (event, id: string) => {
+    if (event.sender !== win?.webContents || event.senderFrame !== event.sender.mainFrame) return { ok: false, error: '不可用的播放器窗口' }
+    if (['starting', 'recording'].includes(session.getStatus().state)) return { ok: false, error: '请先停止录制再回放，避免录入回放声音' }
+    return preparePlayback(id, event.sender.id)
+  })
+  ipcMain.handle('playback:active', (event, token: string, active: boolean) => {
+    if (active && ['starting', 'recording'].includes(session.getStatus().state)) return false
+    return setPlaybackActive(token, event.sender.id, active === true)
+  })
+  ipcMain.handle('playback:release', (event, token: string) => releasePlayback(token, event.sender.id))
   const permissions = () => ({
     supported: process.platform === 'darwin',
     microphone: process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('microphone') : 'unknown' as const,
@@ -160,7 +177,7 @@ function registerIpc(): void {
     const pane = kind === 'microphone' ? 'Privacy_Microphone' : 'Privacy_ScreenCapture'
     await shell.openExternal(`x-apple.systempreferences:com.apple.preference.security?${pane}`)
   })
-  ipcMain.handle('rec:start', (_e, title: string, calendar) => audioProbeRunning() ? { ok: false, error: '系统音频测试中，请稍后开始录制。' } : session.start(title, calendar))
+  ipcMain.handle('rec:start', (_e, title: string, calendar) => playbackActive() ? { ok: false, error: '请先暂停录音回放，稍候再开始录制' } : audioProbeRunning() ? { ok: false, error: '系统音频测试中，请稍后开始录制。' } : session.start(title, calendar))
   ipcMain.handle('rec:stop', () => session.stop())
   ipcMain.handle('feishu:agenda', async () => {
     try {
@@ -291,6 +308,7 @@ app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(
 
 app.whenReady().then(() => {
   if (!hasInstanceLock) return
+  protocol.handle('aftermeet-audio', playbackResponse)
   // dev 下 dock 用我们的图标(打包版由 .icns 提供)
   if (!app.isPackaged) {
     const devIcon = join(app.getAppPath(), 'build', 'icon.png')
