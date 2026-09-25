@@ -64,7 +64,29 @@ export interface MeetingPrep {
   error?: string
 }
 
+export type ProcessingEngine = 'qwen' | 'local'
+export interface ProcessingStatus {
+  stage: 'recording' | 'saved' | 'transcribing' | 'summarizing' | 'complete'
+  state: 'running' | 'paused' | 'failed' | 'done'
+  engine?: ProcessingEngine
+  completedChunks?: number
+  totalChunks?: number
+  message?: string
+  updatedAt: number
+}
+export interface RetranscribeOptions {
+  engine: ProcessingEngine
+  restart?: boolean
+  allowResubmit?: boolean
+}
+
 export interface Meeting {
+  audioPath?: string
+  audioFormat?: 'pcm-s16le-16000-mono'
+  audioBytes?: number
+  processing?: ProcessingStatus
+  notesStale?: boolean
+
   notesModel?: string
   analysisMode?: 'standard' | 'deep'
   transcriptionModel?: string
@@ -180,6 +202,8 @@ export interface AfterMeetApi {
   listMeetings(): Promise<Meeting[]>
   getMeeting(id: string): Promise<Meeting | null>
   deleteMeeting(id: string): Promise<{ ok: boolean }>
+  retranscribe(id: string, options: RetranscribeOptions): Promise<{ ok: boolean; error?: string }>
+  cancelProcessing(id: string): Promise<{ ok: boolean; error?: string }>
   regenerate(id: string, mode?: 'standard' | 'deep'): Promise<{ ok: boolean; error?: string }>
   modelStatus(): Promise<{ openai: boolean; qwen: boolean; standard: string; deep: string; asr: string }>
   toggleTodo(meetingId: string, todoId: string): Promise<{ ok: boolean }>

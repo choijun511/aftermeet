@@ -61,6 +61,10 @@ const MEETINGS: Meeting[] = [
 
 export function installMockApi(): void {
   const params = new URLSearchParams(location.search)
+  if (params.has('recovery')) {
+    MEETINGS[0].audioPath = '/preview/audio.pcm'
+    MEETINGS[0].processing = { stage: 'transcribing', state: 'paused', engine: 'qwen', completedChunks: 2, totalChunks: 4, updatedAt: Date.now(), message: '处理已中断，已保存的录音和分段结果可继续处理' }
+  }
   const rec = params.has('rec') // 预览录制中(1B)
   const empty = params.has('empty') // 预览首次使用(1G)
   const status: StatusEvent = rec
@@ -137,6 +141,8 @@ export function installMockApi(): void {
     getMeeting: async (id) => MEETINGS.find((m) => m.id === id) ?? null,
     deleteMeeting: async () => ({ ok: true }),
     modelStatus: async () => ({ openai: true, qwen: true, standard: 'gpt-5.6-luna', deep: 'gpt-5.6-sol', asr: 'qwen-audio-3.0-asr-flash-filetrans' }),
+    retranscribe: async () => ({ ok: true }),
+    cancelProcessing: async () => ({ ok: true }),
     regenerate: async () => ({ ok: true }),
     toggleTodo: async () => ({ ok: true }),
     openTranscriptsFolder: async () => {},

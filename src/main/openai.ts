@@ -22,7 +22,7 @@ export function strictSchema(schema: Record<string, unknown>): Record<string, un
 }
 
 export async function openaiText(system: string, input: string, opts: {
-  mode?: AnalysisMode; schema?: Record<string, unknown>; timeoutMs?: number; maxOutput?: number
+  signal?: AbortSignal; mode?: AnalysisMode; schema?: Record<string, unknown>; timeoutMs?: number; maxOutput?: number
 } = {}): Promise<string> {
   if (!openaiAvailable()) throw new Error('未配置 OPENAI_API_KEY')
   const model = openaiModel(opts.mode)
@@ -33,7 +33,7 @@ export async function openaiText(system: string, input: string, opts: {
     ...(opts.schema ? { text: { format: { type: 'json_schema', name: 'meeting_result', strict: true, schema: strictSchema(opts.schema) } } } : {})
   }
   const res = await cloudFetch('https://api.openai.com/v1/responses', {
-    method: 'POST', headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+    signal: opts.signal, method: 'POST', headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   }, opts.timeoutMs || 180000)
   const data = await res.json() as {
@@ -50,6 +50,6 @@ export async function openaiText(system: string, input: string, opts: {
   return text
 }
 
-export async function openaiJson<T>(system: string, input: string, schema: Record<string, unknown>, mode: AnalysisMode = 'standard'): Promise<T> {
-  return JSON.parse(await openaiText(system, input, { schema, mode })) as T
+export async function openaiJson<T>(system: string, input: string, schema: Record<string, unknown>, mode: AnalysisMode = 'standard', signal?: AbortSignal): Promise<T> {
+  return JSON.parse(await openaiText(system, input, { schema, mode, signal })) as T
 }

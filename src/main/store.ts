@@ -3,7 +3,8 @@
 
 import { app } from 'electron'
 import { join } from 'path'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync } from 'fs'
+import { readJson, writeJson } from './atomic-json'
 import type { Meeting } from '../shared/types'
 
 function dataDir(): string {
@@ -27,49 +28,24 @@ function dbPath(): string {
 function settingsPath(): string {
   return join(dataDir(), 'settings.json')
 }
-let settingsCache: Record<string, unknown> | null = null
 function loadSettings(): Record<string, unknown> {
-  if (settingsCache) return settingsCache
-  try {
-    settingsCache = existsSync(settingsPath())
-      ? (JSON.parse(readFileSync(settingsPath(), 'utf-8')) as Record<string, unknown>)
-      : {}
-  } catch {
-    settingsCache = {}
-  }
-  return settingsCache!
+  return readJson(settingsPath(), {}, (v) => v && typeof v === 'object' && !Array.isArray(v))
 }
 export function getSetting<T>(key: string, def: T): T {
   const s = loadSettings()
-  return key in s ? (s[key] as T) : def
+  return key in s ? s[key] as T : def
 }
 export function setSetting(key: string, val: unknown): void {
-  const s = loadSettings()
-  s[key] = val
-  writeFileSync(settingsPath(), JSON.stringify(s, null, 2), 'utf-8')
+  writeJson(settingsPath(), { ...loadSettings(), [key]: val })
 }
-
-let cache: Meeting[] | null = null
-
 function load(): Meeting[] {
-  if (cache) return cache
-  const p = dbPath()
-  if (!existsSync(p)) {
-    cache = []
-    return cache
-  }
-  try {
-    cache = JSON.parse(readFileSync(p, 'utf-8')) as Meeting[]
-  } catch {
-    cache = []
-  }
-  return cache!
+  return readJson(dbPath(), [], (v) => Array.isArray(v) && v.every((m) =>
+    typeof m.id === 'string' && typeof m.title === 'string' && typeof m.startedAt === 'number' &&
+    typeof m.transcript === 'string' && Array.isArray(m.todos)))
 }
-
-function persist(): void {
-  writeFileSync(dbPath(), JSON.stringify(cache ?? [], null, 2), 'utf-8')
+export function deletedMeetingIds(): string[] {
+  return readJson(join(dataDir(), 'deleted-meetings.json'), [], (v) => Array.isArray(v) && v.every((id) => typeof id === 'string'))
 }
-
 export function listMeetings(): Meeting[] {
   return [...load()].sort((a, b) => b.startedAt - a.startedAt)
 }
@@ -83,10 +59,11 @@ export function upsertMeeting(m: Meeting): void {
   const i = all.findIndex((x) => x.id === m.id)
   if (i >= 0) all[i] = m
   else all.unshift(m)
-  persist()
+  writeJson(dbPath(), all)
 }
 
 export function deleteMeeting(id: string): void {
-  cache = load().filter((m) => m.id !== id)
-  persist()
+  const all = load().filter((m) => m.id !== id)
+  writeJson(join(dataDir(), 'deleted-meetings.json'), [...new Set([...deletedMeetingIds(), id])])
+  writeJson(dbPath(), all)
 }

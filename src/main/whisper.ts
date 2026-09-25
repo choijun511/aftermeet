@@ -69,8 +69,9 @@ function rms(int16: Int16Array): number {
 
 // 会后两遍精转:对完整录音做一次「带完整上下文」的转写。
 // 大模型在整段音频上(30s 窗口 + 上下文)远比 5s 孤立分块准确、且几乎不幻觉。
-export function transcribeFile(wavPath: string, language = 'auto'): Promise<string> {
+export function transcribeFile(wavPath: string, language = 'auto', signal?: AbortSignal): Promise<string> {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) { reject(new Error('已取消处理')); return }
     // 注意:不要用 -sns(suppress-non-speech)!实测它在长会议音频上会把 ~90% 的真实语音
     // 当非语音抑制掉(68分钟只剩 6946 字 vs 无此参数 72178 字)。整段带上下文转写不需要它。
     const args = [
@@ -85,17 +86,28 @@ export function transcribeFile(wavPath: string, language = 'auto'): Promise<stri
       stdio: ['ignore', 'pipe', 'pipe'],
       cwd: whisperCwd()
     })
+    let killTimer: NodeJS.Timeout | undefined
+    const abort = (): void => {
+      proc.kill('SIGTERM')
+      killTimer = setTimeout(() => proc.kill('SIGKILL'), 1500)
+    }
+    signal?.addEventListener('abort', abort, { once: true })
+    const release = (): void => { signal?.removeEventListener('abort', abort); clearTimeout(killTimer) }
+    proc.stdout.setEncoding('utf8')
     let out = ''
     let err = ''
     proc.stdout.on('data', (d) => (out += d.toString()))
     proc.stderr.on('data', (d) => (err = (err + d.toString()).slice(-4000)))
     proc.on('error', (e) => {
+      release()
       console.error('[whisper:full] spawn error', e.message)
       reject(new Error(`转写引擎启动失败：${e.message}`))
     })
-    proc.on('close', (code, signal) => {
+    proc.on('close', (code, exitSignal) => {
+      release()
+      if (signal?.aborted) { reject(new Error('已取消处理')); return }
       if (code !== 0) {
-        const message = `转写引擎退出（${code ?? signal}）：${err.slice(-1200)}`
+        const message = `转写引擎退出（${code ?? exitSignal}）：${err.slice(-1200)}`
         console.error('[whisper:full]', message)
         reject(new Error(message))
         return

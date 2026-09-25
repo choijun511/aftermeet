@@ -1,3 +1,5 @@
+import type { Meeting } from '../../shared/types'
+
 // 渲染层通用小工具:时间/日期格式化。
 
 export function fmtClock(sec: number): string {
@@ -52,4 +54,14 @@ export function initials(name?: string): string {
   if (/[一-龥]/.test(s)) return s.slice(-2)
   const parts = s.split(/\s+/).filter(Boolean)
   return (parts[0]?.[0] || '') + (parts[1]?.[0] || '')
+}
+
+/** Durable task state, not absence of notes, determines whether work is running. */
+export function meetingStatus(m: Meeting): string {
+  if (m.processing?.state === 'running') return m.processing.stage === 'recording' ? '录制中' : '处理中'
+  if (m.processing?.state === 'paused') return '待继续'
+  if (m.processing?.state === 'failed') return '待重试'
+  if (m.notesStale) return '纪要待更新'
+  if (m.minutes) return '已生成'
+  return m.transcript.trim() ? '仅转写' : '待转写'
 }

@@ -26,6 +26,7 @@ import {
 } from './store'
 import { hasApiKey, askMeeting } from './llm'
 import { buildMeetingPrep } from './prep'
+import { storageWarnings } from './atomic-json'
 import { recoverOrphans } from './recover'
 import type { AppSettings, CalendarEvent } from '../shared/types'
 
@@ -40,6 +41,8 @@ function currentSettings(): AppSettings {
 
 // 设定 app 名,使 userData = ~/Library/Application Support/AfterMeet(与设计稿一致)
 app.setName('AfterMeet')
+const hasInstanceLock = app.requestSingleInstanceLock()
+if (!hasInstanceLock) app.quit()
 
 // 文件日志:把 console.log/error 同时写到 userData/debug.log,便于打包后诊断
 // (无论 app 怎么启动都能读到日志,不依赖 stdout 捕获)。
@@ -188,14 +191,18 @@ function registerIpc(): void {
   ipcMain.handle('meetings:list', () => listMeetings())
   ipcMain.handle('meetings:get', (_e, id: string) => getMeeting(id))
   ipcMain.handle('meetings:delete', (_e, id: string) => {
+    if (session.getStatus().state !== 'idle') return { ok: false, error: '请等待录制或处理结束后删除' }
     deleteMeeting(id)
     return { ok: true }
   })
+  ipcMain.handle('meetings:retranscribe', (_e, id: string, options) => audioProbeRunning() ? { ok: false, error: '系统音频测试中，请稍后处理' } : session.retranscribe(id, options))
+  ipcMain.handle('meetings:cancelProcessing', (_e, id: string) => session.cancelProcessing(id))
   ipcMain.handle('meetings:regenerate', (_e, id: string, mode: string) => session.regenerate(id, mode === 'deep' ? 'deep' : 'standard'))
   ipcMain.handle('app:modelStatus', () => ({ openai: openaiAvailable(), qwen: qwenAvailable(), standard: openaiModel(), deep: openaiModel('deep'), asr: qwenModel() }))
   ipcMain.handle('meetings:toggleTodo', (_e, meetingId: string, todoId: string) => {
     const m = getMeeting(meetingId)
     if (!m) return { ok: false }
+    if (session.getStatus().meetingId === meetingId && session.getStatus().state !== 'idle') return { ok: false }
     const todo = m.todos.find((t) => t.id === todoId)
     if (todo) {
       todo.done = !todo.done
@@ -206,6 +213,7 @@ function registerIpc(): void {
   ipcMain.handle('meetings:rename', (_e, id: string, title: string) => {
     const m = getMeeting(id)
     if (!m) return { ok: false }
+    if (session.getStatus().meetingId === id && session.getStatus().state !== 'idle') return { ok: false }
     m.title = title.trim() || m.title
     upsertMeeting(m)
     send('meeting-updated', m)
@@ -279,7 +287,10 @@ function registerIpc(): void {
   ipcMain.handle('autostart:get', () => autoStart.enabled)
 }
 
+app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.show(); win.focus() } })
+
 app.whenReady().then(() => {
+  if (!hasInstanceLock) return
   // dev 下 dock 用我们的图标(打包版由 .icns 提供)
   if (!app.isPackaged) {
     const devIcon = join(app.getAppPath(), 'build', 'icon.png')
@@ -288,7 +299,10 @@ app.whenReady().then(() => {
   session = new Session(send)
   autoStart = new AutoStart(session, (msg) => send('notice', msg))
   // 按持久化偏好武装自动起录(默认开;用户关过就保持关)
-  autoStart.setEnabled(getSetting('autoStart', true))
+  try { autoStart.setEnabled(getSetting('autoStart', true)) } catch (e) {
+    storageWarnings.push(e instanceof Error ? e.message : String(e))
+    autoStart.setEnabled(false)
+  }
   // 崩溃/强退恢复:补建未入库的中断录制(在建窗前跑,窗口一开就能看到)
   let recovered: string[] = []
   try {
@@ -296,10 +310,12 @@ app.whenReady().then(() => {
     if (recovered.length) console.log(`[recover] 恢复了 ${recovered.length} 场中断录制:`, recovered.join('、'))
   } catch (e) {
     console.error('[recover] 失败:', e instanceof Error ? e.message : e)
+    storageWarnings.push(e instanceof Error ? e.message : String(e))
   }
   registerIpc()
   createWindow()
   // 窗口加载完再提示,确保渲染端已挂上监听
+  if (storageWarnings.length && win) win.webContents.once('did-finish-load', () => send('notice', storageWarnings.join('；')))
   if (recovered.length && win) {
     win.webContents.once('did-finish-load', () => {
       send('notice', `已恢复 ${recovered.length} 场中断的录制,可在会议库查看`)

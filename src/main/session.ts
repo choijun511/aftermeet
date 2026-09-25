@@ -1,30 +1,23 @@
 // 录制会话编排:把 音频采集 → 实时转写 → 落盘存档 → 推送渲染进程 串起来,
 // 停止时持久化会议并调用 Claude 生成纪要/总结/待办。
 
-import {
-  mkdtempSync,
-  rmSync,
-  createWriteStream,
-  WriteStream,
-  readFileSync,
-  writeFileSync,
-  existsSync,
-  statSync,
-  unlinkSync
-} from 'fs'
+import { createWriteStream, WriteStream, existsSync, statSync } from 'fs'
 import { join } from 'path'
-import { tmpdir } from 'os'
-import { transcribeQwenPcm, qwenAvailable, pcmWav } from './qwen'
+import { finished } from 'stream/promises'
+import { qwenAvailable, checkCancelled } from './qwen'
+import { preserveMeetingVersion, transcribeSavedAudio } from './processing'
 import { safeError } from './cloud-http'
 import type { AnalysisMode } from './openai'
 import { AudioCapture } from './audio'
-import { Transcriber, transcribeFile } from './whisper'
+import { Transcriber } from './whisper'
 import { StreamingRecognizer } from './streaming'
 import { transcriptsDir, upsertMeeting, getMeeting, getSetting } from './store'
-import { generateNotes, hasApiKey, cleanTranscript } from './llm'
+import { generateNotes, hasApiKey } from './llm'
 import { Polisher } from './polish'
 import { toSimplified } from './textproc'
 import type {
+  ProcessingStatus,
+  RetranscribeOptions,
   CalendarEvent,
   Meeting,
   RecState,
@@ -34,35 +27,8 @@ import type {
 
 type Send = (channel: string, payload: unknown) => void
 
-// 把 raw s16le/16k/mono PCM 文件转成 WAV(加 44 字节头)
-function pcmToWav(pcmPath: string, wavPath: string): void {
-  const pcm = readFileSync(pcmPath)
-  const rate = 16000
-  const dataSize = pcm.length
-  const h = Buffer.alloc(44)
-  h.write('RIFF', 0)
-  h.writeUInt32LE(36 + dataSize, 4)
-  h.write('WAVE', 8)
-  h.write('fmt ', 12)
-  h.writeUInt32LE(16, 16)
-  h.writeUInt16LE(1, 20)
-  h.writeUInt16LE(1, 22)
-  h.writeUInt32LE(rate, 24)
-  h.writeUInt32LE(rate * 2, 28)
-  h.writeUInt16LE(2, 32)
-  h.writeUInt16LE(16, 34)
-  h.write('data', 36)
-  h.writeUInt32LE(dataSize, 40)
-  writeFileSync(wavPath, Buffer.concat([h, pcm]))
-}
-
 function pad(n: number): string {
   return n < 10 ? '0' + n : '' + n
-}
-function stamp(d: Date): string {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(
-    d.getMinutes()
-  )}${pad(d.getSeconds())}`
 }
 function clock(d: Date): string {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
@@ -87,6 +53,9 @@ export class Session {
   private polishChain: Promise<void> = Promise.resolve()
   private captureWarning = ''
   private stopping = false
+  private processingId: string | null = null
+  private processingAbort: AbortController | null = null
+  private lastMessage = ''
 
   constructor(send: Send) {
     this.send = send
@@ -98,14 +67,15 @@ export class Session {
       durationSec: this.startMs ? Math.floor((Date.now() - this.startMs) / 1000) : 0,
       active: !!this.audio?.health && (this.audio.health.system.rms > 0.003 || (this.audio.health.micIncluded && this.audio.health.microphone.rms > 0.015)),
       audioHealth: this.audio?.health,
-      meetingId: this.meeting?.id
+      message: this.lastMessage || undefined,
+      meetingId: this.meeting?.id || this.processingId || undefined
     }
   }
 
   private emitStatus(message?: string): void {
     const s = this.getStatus()
     if (this.captureWarning) s.message = this.captureWarning
-    if (message) s.message = message
+    if (message) { s.message = message; this.lastMessage = message }
     this.send('status', s)
   }
 
@@ -118,7 +88,7 @@ export class Session {
     }
     const now = new Date()
     const id = `m_${now.getTime()}`
-    const fileName = `会中转写-${stamp(now)}.txt`
+    const fileName = `会中转写-${id}.txt`
     const filePath = join(transcriptsDir(), fileName)
 
     // 标题优先级:手动填的 > 关联的飞书会议标题 > 按时间自动命名
@@ -130,16 +100,24 @@ export class Session {
       durationSec: 0,
       transcript: '',
       transcriptPath: filePath,
+      audioPath: join(transcriptsDir(), `audio-${id}.pcm`),
+      audioFormat: 'pcm-s16le-16000-mono',
+      processing: { stage: 'recording', state: 'running', updatedAt: now.getTime(), message: '正在保存录音' },
       todos: [],
       calendar: calendar || undefined
     }
-    upsertMeeting(this.meeting)
+    try { upsertMeeting(this.meeting) } catch (error) {
+      this.meeting = null
+      return { ok: false, error: safeError(error) }
+    }
 
-    this.archive = createWriteStream(filePath, { flags: 'a', encoding: 'utf-8' })
+    this.archive = createWriteStream(filePath, { flags: 'a', encoding: 'utf-8', flush: true })
+    this.archive.on('error', (error) => this.onAudioError(`转写存档失败：${safeError(error)}`))
     this.archive.write(`# ${this.meeting.title}\n# 开始:${now.toLocaleString('zh-CN')}\n\n`)
 
     this.segCount = 0
     this.captureWarning = ''
+    this.lastMessage = ''
     this.segments = []
     this.polishChain = Promise.resolve()
     this.polisher = new Polisher()
@@ -170,8 +148,9 @@ export class Session {
     }
 
     // 完整混音 PCM 落盘(raw s16le 16k mono),用于会后两遍精转
-    this.audioRawPath = join(transcriptsDir(), `audio-${stamp(now)}.pcm`)
-    this.audioRaw = createWriteStream(this.audioRawPath)
+    this.audioRawPath = this.meeting!.audioPath!
+    this.audioRaw = createWriteStream(this.audioRawPath, { flags: 'wx', flush: true })
+    this.audioRaw.on('error', (error) => this.onAudioError(`录音写入失败：${safeError(error)}`))
 
     // 音频采集:PCM 喂实时引擎 + 存完整混音
     this.audio = new AudioCapture({
@@ -194,6 +173,7 @@ export class Session {
     if (!res.ok) {
       this.state = 'error'
       this.emitStatus(res.error)
+      this.updateProcessing(this.meeting!, { stage: 'saved', state: 'failed', message: res.error })
       this.cleanup()
       return { ok: false, error: res.error }
     }
@@ -293,7 +273,31 @@ export class Session {
     this.captureWarning = msg
     this.send('notice', msg)
     this.emitStatus(msg)
-    if (!this.stopping) void this.stop()
+    if (!this.stopping) void this.stop().catch((error) => this.send('notice', safeError(error)))
+  }
+
+  private updateProcessing(meeting: Meeting, status: Omit<ProcessingStatus, 'updatedAt'>): void {
+    const previous = meeting.processing && { ...meeting.processing, updatedAt: undefined }
+    if (JSON.stringify(previous) === JSON.stringify({ ...status, updatedAt: undefined })) {
+      this.emitStatus(status.message); return
+    }
+    meeting.processing = { ...status, updatedAt: Date.now() }
+    upsertMeeting(meeting)
+    this.send('meeting-updated', meeting)
+    this.emitStatus(status.message)
+  }
+
+  private releaseProcessing(): void {
+    this.processingId = null; this.processingAbort = null
+    this.state = 'idle'; this.lastMessage = ''; this.captureWarning = ''
+    this.emitStatus()
+  }
+
+  cancelProcessing(id: string): { ok: boolean; error?: string } {
+    if (this.processingId !== id || !this.processingAbort) return { ok: false, error: '该会议当前没有可取消的处理任务' }
+    this.processingAbort.abort()
+    this.emitStatus('正在取消…录音和已完成分段会保留；已提交的云任务可能仍会计费')
+    return { ok: true }
   }
 
   async stop(): Promise<{ ok: boolean; meetingId?: string; error?: string }> {
@@ -305,131 +309,104 @@ export class Session {
     meeting.durationSec = Math.floor((meeting.endedAt - meeting.startedAt) / 1000)
     if (this.timer) clearInterval(this.timer)
     this.timer = null
-
     this.state = 'transcribing'
-    await this.audio?.stop()
-    this.emitStatus('正在处理收尾音频…')
-
-    // 收尾实时引擎
-    if (this.streaming) {
-      await this.streaming.stop()
-      this.streaming = null
-    } else {
-      await this.transcriber?.flush()
-      this.emitStatus('正在校对转写…')
+    this.processingId = meeting.id
+    this.processingAbort = new AbortController()
+    const signal = this.processingAbort.signal
+    try {
+      await this.audio?.stop()
+      this.emitStatus('正在保存录音…')
+      // Close audio BEFORE waiting for recognizers or any network processing.
+      const audio = this.audioRaw; this.audioRaw = null
+      if (audio) {
+        const closed = finished(audio)
+        audio.end()
+        await closed
+      }
+      meeting.audioBytes = meeting.audioPath && existsSync(meeting.audioPath) ? statSync(meeting.audioPath).size : 0
+      this.updateProcessing(meeting, { stage: 'saved', state: 'running', message: '录音已保存，正在收尾字幕…' })
+      if (this.streaming) { await this.streaming.stop(); this.streaming = null }
+      else await this.transcriber?.flush()
       await this.polishChain
+      meeting.transcript = this.segments.map((s) => s.text).join(' ')
+      this.archive?.end(`\n# 结束:${new Date().toLocaleString('zh-CN')}\n`)
+      this.archive = null
+      this.send('segment', { id: 'live', t: 0, text: '', final: false })
+      upsertMeeting(meeting)
+      checkCancelled(signal)
+      if (getSetting('twoPass', true)) {
+        const engine = getSetting('cloudAsr', qwenAvailable()) && qwenAvailable() ? 'qwen' : 'local'
+        try { await this.fullTranscribe(meeting, { engine }, signal) } catch (error) {
+          checkCancelled(signal)
+          if (engine !== 'qwen') throw error
+          const warning = `Qwen 处理未完成，已改用本地 Whisper；云端进度仍保留。${safeError(error)}`
+          await this.fullTranscribe(meeting, { engine: 'local' }, signal)
+          meeting.transcriptionWarning = warning
+          upsertMeeting(meeting)
+        }
+      }
+      checkCancelled(signal)
+      this.updateProcessing(meeting, { stage: 'saved', state: 'done', message: '录音与转写已保存' })
+      if (getSetting('autoMinutes', true)) await this.runLlm(meeting)
+      return { ok: !meeting.llmError, meetingId: meeting.id, error: meeting.llmError }
+    } catch (error) {
+      const message = safeError(error)
+      this.updateProcessing(meeting, { ...meeting.processing!, stage: meeting.processing?.stage === 'recording' ? 'saved' : meeting.processing?.stage || 'saved',
+        state: signal.aborted ? 'paused' : 'failed', message })
+      this.send('notice', message)
+      return { ok: false, meetingId: meeting.id, error: message }
+    } finally {
+      this.archive?.end(); this.archive = null
+      this.audioRaw?.end(); this.audioRaw = null
+      await this.audio?.stop()
+      await this.streaming?.stop()
+      this.streaming = null; this.transcriber = null; this.audio = null
+      this.startMs = 0; this.meeting = null; this.stopping = false
+      this.releaseProcessing()
     }
-    await this.polishChain
-    // 先用实时片段拼一个粗稿(作为兜底;下面会被 whisper 两遍精转覆盖)
-    meeting.transcript = this.segments.map((s) => s.text).join(' ')
-    // 清掉渲染端的 partial 行
-    this.send('segment', { id: 'live', t: 0, text: '', final: false })
-
-    // 关闭存档与完整音频(等音频流真正写完再精转)
-    this.archive?.end(`\n# 结束:${new Date().toLocaleString('zh-CN')}\n`)
-    this.archive = null
-    if (this.audioRaw) {
-      const s = this.audioRaw
-      this.audioRaw = null
-      await new Promise<void>((r) => s.end(() => r()))
-    }
-
-    // ★ 两遍精转:对完整录音整段转写(带上下文,远好于 5s 分块),作为权威转写
-    await this.fullTranscribe(meeting)
-
-    upsertMeeting(meeting)
-
-    // 生成纪要(异步,失败不影响转写已保存);用户可在设置关闭自动生成
-    if (getSetting('autoMinutes', true)) {
-      this.state = 'summarizing'
-      this.emitStatus('正在生成会议纪要…')
-      await this.runLlm(meeting)
-    }
-
-    this.state = 'idle'
-    this.startMs = 0
-    this.meeting = null
-    this.transcriber = null
-    this.audio = null
-    this.stopping = false
-    const error = meeting.llmError
-    this.captureWarning = ''
-    this.emitStatus()
-    if (error) this.send('notice', error)
-    return { ok: !error, meetingId: meeting.id, error }
   }
 
-  /** 两遍精转:整段录音带上下文转写,覆盖实时粗稿 */
-  private async fullTranscribe(meeting: Meeting): Promise<void> {
-    try {
-      // 用户可在设置关闭「停止后高精度重转」;关掉则只整理实时稿(补标点分段)
-      if (!getSetting('twoPass', true)) {
-        const draftLen = meeting.transcript.length
-        if (draftLen >= 4) {
-          this.emitStatus('正在整理转写(补标点、分段)…')
-          const cleaned = await cleanTranscript(meeting.transcript)
-          if (cleaned && cleaned.length >= draftLen * 0.6) meeting.transcript = cleaned
-        }
-        return
-      }
-      if (!this.audioRawPath || !existsSync(this.audioRawPath)) return
-      if (statSync(this.audioRawPath).size < 32000) return // < ~1s,不值当
-      this.state = 'transcribing'
-      if (getSetting('cloudAsr', qwenAvailable()) && qwenAvailable()) {
-        try {
-          const cloud = await transcribeQwenPcm(this.audioRawPath, (message) => this.emitStatus(message), async (pcm) => {
-            const dir = mkdtempSync(join(tmpdir(), 'aftermeet-qwen-fallback-'))
-            try {
-              const wav = join(dir, 'chunk.wav')
-              writeFileSync(wav, pcmWav(pcm))
-              return toSimplified(await transcribeFile(wav, process.env.AFTERMEET_LANG || 'auto'))
-            } finally { rmSync(dir, { recursive: true, force: true }) }
-          })
-          meeting.transcript = cloud.text
-          meeting.speakerSegments = cloud.sentences
-          meeting.transcriptionModel = cloud.model
-          meeting.transcriptionWarning = cloud.warnings.length ? cloud.warnings.join('；') : undefined
-          console.log(`[qwen] 完成：${cloud.sentences.length} 段，${cloud.text.length} 字`)
-          return
-        } catch (e) {
-          meeting.transcriptionWarning = `Qwen 精转失败，已回退本地 Whisper：${safeError(e)}`
-          console.warn('[qwen]', meeting.transcriptionWarning)
-          this.send('notice', meeting.transcriptionWarning)
-        }
-      }
-      meeting.transcriptionModel = 'whisper-large-v3-turbo'
-      this.emitStatus('正在使用本地 Whisper 精转全程录音…')
-      const wav = this.audioRawPath.replace(/\.pcm$/, '.wav')
-      pcmToWav(this.audioRawPath, wav)
-      const full = await transcribeFile(wav, process.env.AFTERMEET_LANG || 'auto')
-      try {
-        unlinkSync(wav)
-      } catch {
-        /* */
-      }
-      // 防御:精转结果远短于实时流式稿时,说明精转异常丢了内容 → 保留更完整的流式稿,
-      // 绝不用残缺结果覆盖(这正是 70 分钟会只剩 3500 字 bug 的直接原因)。
-      const draftLen = meeting.transcript.length
-      if (full && full.length >= 4 && (full.length >= draftLen * 0.6 || draftLen < 80)) {
-        // whisper 精转 → 繁转简 → Gemini 整理(补标点、分段、去 ASR 重复、修错字,不改原意)
-        this.emitStatus('正在整理转写(补标点、分段)…')
-        const cleaned = await cleanTranscript(toSimplified(full))
-        meeting.transcript = cleaned || toSimplified(full)
-        console.log(`[full] 精转+整理完成:${meeting.transcript.length} 字(精转原始 ${full.length}, 流式稿 ${draftLen})`)
-      } else {
-        console.warn(
-          `[full] 精转结果(${full?.length || 0}字)远短于流式稿(${draftLen}字),保留流式稿并整理`
-        )
-        // 仍对流式稿做一次整理(补标点分段),提升可读性
-        if (draftLen >= 4) {
-          const cleaned = await cleanTranscript(meeting.transcript)
-          if (cleaned && cleaned.length >= draftLen * 0.6) meeting.transcript = cleaned
-        }
-      }
-    } catch (e) {
-      meeting.transcriptionWarning = `精转失败，已保留实时稿：${safeError(e)}`
-      console.error('[full]', meeting.transcriptionWarning)
+  private async fullTranscribe(meeting: Meeting, options: RetranscribeOptions, signal: AbortSignal): Promise<void> {
+    this.state = 'transcribing'
+    const result = await transcribeSavedAudio(meeting, options, signal, (message, completedChunks, totalChunks) => {
+      this.updateProcessing(meeting, { stage: 'transcribing', state: 'running', engine: options.engine,
+        completedChunks, totalChunks, message })
+    })
+    checkCancelled(signal)
+    if (!result.text.trim()) throw new Error('转写未返回文字，已保留原稿')
+    if (meeting.transcript.length >= 80 && result.text.length < meeting.transcript.length * 0.6) {
+      throw new Error('新转写明显短于原稿，已保留原稿；分段结果已保存，请先核对录音')
     }
+    preserveMeetingVersion(meeting)
+    meeting.notesStale = meeting.notesSource !== 'feishu' && (!!meeting.minutes || !!meeting.summary)
+    meeting.transcript = result.text
+    meeting.speakerSegments = result.sentences
+    meeting.transcriptionModel = result.model
+    meeting.transcriptionWarning = result.warnings.join('；') || undefined
+    // Existing notes remain associated with their original source until explicitly regenerated.
+    upsertMeeting(meeting)
+    this.send('meeting-updated', meeting)
+  }
+
+  async retranscribe(id: string, options: RetranscribeOptions): Promise<{ ok: boolean; error?: string }> {
+    if (this.state !== 'idle' || this.meeting || this.processingId) return { ok: false, error: '请等待当前录制或处理完成' }
+    if (!options || !['local', 'qwen'].includes(options.engine)) return { ok: false, error: '请选择转写方式' }
+    if (options.engine === 'qwen' && !qwenAvailable()) return { ok: false, error: '未配置 Qwen 密钥，请选择本地 Whisper' }
+    const meeting = getMeeting(id)
+    if (!meeting) return { ok: false, error: '会议不存在' }
+    this.processingId = id; this.processingAbort = new AbortController()
+    const signal = this.processingAbort.signal
+    this.state = 'transcribing'
+    try {
+      await this.fullTranscribe(meeting, options, signal)
+      this.updateProcessing(meeting, { ...meeting.processing!, stage: 'saved', state: 'done', message: '转写已保存；可重新生成纪要，原纪要仍保留' })
+      return { ok: true }
+    } catch (error) {
+      const message = safeError(error)
+      this.updateProcessing(meeting, { ...meeting.processing!, stage: 'transcribing', engine: options.engine,
+        state: signal.aborted ? 'paused' : 'failed', message })
+      return { ok: false, error: message }
+    } finally { this.releaseProcessing() }
   }
 
   private async runLlm(meeting: Meeting): Promise<void> {
@@ -445,29 +422,30 @@ export class Session {
       meeting.notesSource === 'feishu' && meeting.feishuTranscript
         ? meeting.feishuTranscript
         : meeting.transcript
-    this.state = 'summarizing'
-    this.send('status', { state: 'summarizing', durationSec: 0, active: false, meetingId: id })
-    try { await this.runLlmFrom(meeting, text, mode) } finally { this.state = 'idle'; this.send('status', this.getStatus()) }
+    this.processingId = id
+    this.processingAbort = new AbortController()
+    try { await this.runLlmFrom(meeting, text, mode) } finally { this.releaseProcessing() }
     if (meeting.llmError) return { ok: false, error: meeting.llmError }
     return { ok: true }
   }
 
   /** 用指定转写文本生成纪要/待办(供本地/飞书妙记两路复用) */
   private async runLlmFrom(meeting: Meeting, transcript: string, mode: AnalysisMode = 'standard'): Promise<void> {
+    this.state = 'summarizing'
+    this.updateProcessing(meeting, { stage: 'summarizing', state: 'running', message: '正在生成纪要…' })
     if (!transcript.trim()) {
       meeting.llmError = '转写为空,跳过纪要生成'
-      upsertMeeting(meeting)
-      this.send('meeting-updated', meeting)
+      this.updateProcessing(meeting, { stage: 'summarizing', state: 'failed', message: meeting.llmError })
       return
     }
     if (!hasApiKey()) {
       meeting.llmError = '未配置 OPENAI_API_KEY，无法生成 AI 纪要。'
-      upsertMeeting(meeting)
-      this.send('meeting-updated', meeting)
+      this.updateProcessing(meeting, { stage: 'summarizing', state: 'failed', message: meeting.llmError })
       return
     }
     try {
-      const res = await generateNotes(transcript, mode)
+      const res = await generateNotes(transcript, mode, this.processingAbort?.signal)
+      checkCancelled(this.processingAbort?.signal)
       meeting.notesModel = res.model
       meeting.analysisMode = mode
       meeting.minutes = res.minutes
@@ -480,11 +458,13 @@ export class Session {
         done: meeting.todos.find((old) => old.text === t.text && old.owner === t.owner)?.done || false
       }))
       meeting.llmError = undefined
+      meeting.notesStale = false
     } catch (e) {
       meeting.llmError = safeError(e)
     }
-    upsertMeeting(meeting)
-    this.send('meeting-updated', meeting)
+    this.updateProcessing(meeting, { stage: meeting.llmError ? 'summarizing' : 'complete',
+      state: this.processingAbort?.signal.aborted ? 'paused' : meeting.llmError ? 'failed' : 'done',
+      message: meeting.llmError || '纪要已生成' })
   }
 
   /** 用飞书妙记逐字稿生成纪要/待办(缓存妙记稿,切换来源为 feishu) */
@@ -493,28 +473,30 @@ export class Session {
     feishuTranscript: string,
     feishuTitle?: string
   ): Promise<{ ok: boolean; error?: string }> {
+    if (this.state !== 'idle' || this.processingId || this.meeting) return { ok: false, error: '请等待当前处理完成' }
     const meeting = getMeeting(id)
     if (!meeting) return { ok: false, error: '会议不存在' }
+    this.processingId = id; this.processingAbort = new AbortController()
     meeting.feishuTranscript = feishuTranscript
     meeting.feishuTitle = feishuTitle
     meeting.notesSource = 'feishu'
     upsertMeeting(meeting)
     this.send('status', { state: 'summarizing', durationSec: 0, active: false, meetingId: id })
-    await this.runLlmFrom(meeting, feishuTranscript)
-    this.send('status', this.getStatus())
+    try { await this.runLlmFrom(meeting, feishuTranscript) } finally { this.releaseProcessing() }
     if (meeting.llmError) return { ok: false, error: meeting.llmError }
     return { ok: true }
   }
 
   /** 切回本地录制转写生成纪要 */
   async useLocalNotes(id: string): Promise<{ ok: boolean; error?: string }> {
+    if (this.state !== 'idle' || this.processingId || this.meeting) return { ok: false, error: '请等待当前处理完成' }
     const meeting = getMeeting(id)
     if (!meeting) return { ok: false, error: '会议不存在' }
+    this.processingId = id; this.processingAbort = new AbortController()
     meeting.notesSource = 'local'
     upsertMeeting(meeting)
     this.send('status', { state: 'summarizing', durationSec: 0, active: false, meetingId: id })
-    await this.runLlmFrom(meeting, meeting.transcript)
-    this.send('status', this.getStatus())
+    try { await this.runLlmFrom(meeting, meeting.transcript) } finally { this.releaseProcessing() }
     if (meeting.llmError) return { ok: false, error: meeting.llmError }
     return { ok: true }
   }

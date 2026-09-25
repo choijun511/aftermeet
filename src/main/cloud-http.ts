@@ -3,6 +3,9 @@ import { net } from 'electron'
 // Electron's network stack uses macOS certificate/proxy settings.
 export async function cloudFetch(url: string, init: RequestInit = {}, timeoutMs = 60000): Promise<Response> {
   const ctrl = new AbortController()
+  const abort = (): void => ctrl.abort()
+  init.signal?.addEventListener('abort', abort, { once: true })
+  if (init.signal?.aborted) ctrl.abort()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
     const response = await net.fetch(url, { ...init, signal: ctrl.signal, redirect: 'error' })
@@ -10,9 +13,10 @@ export async function cloudFetch(url: string, init: RequestInit = {}, timeoutMs 
     const body = await response.arrayBuffer()
     return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers })
   } catch (e) {
+    if (init.signal?.aborted) throw new Error('已取消处理，录音和已完成结果已保留')
     if (ctrl.signal.aborted) throw new Error('云端请求超时，请检查网络后重试')
     throw e
-  } finally { clearTimeout(timer) }
+  } finally { clearTimeout(timer); init.signal?.removeEventListener('abort', abort) }
 }
 
 export function safeError(error: unknown): string {

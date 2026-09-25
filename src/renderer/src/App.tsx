@@ -38,6 +38,7 @@ export default function App(): React.JSX.Element {
     twoPass: true,
     autoMinutes: true
   })
+  const [storageError, setStorageError] = useState('')
   const [notice, setNotice] = useState<string | null>(null)
   const [librarySearch, setLibrarySearch] = useState('')
   const librarySearchFocus = useRef(false)
@@ -46,13 +47,14 @@ export default function App(): React.JSX.Element {
   const busy = status.state === 'transcribing' || status.state === 'summarizing'
 
   const refreshMeetings = useCallback(async () => {
-    setMeetings(await window.api.listMeetings())
+    try { setMeetings(await window.api.listMeetings()); setStorageError('') }
+    catch (e) { setStorageError(e instanceof Error ? e.message : '本地会议数据无法读取，已保留原文件') }
   }, [])
 
   useEffect(() => {
     window.api.getState().then(setStatus)
     window.api.hasApiKey().then(setHasKey)
-    window.api.getSettings().then(setSettings)
+    window.api.getSettings().then(setSettings).catch((e) => setStorageError(String(e)))
     refreshMeetings()
 
     const offStatus = window.api.onStatus((s) => {
@@ -174,6 +176,7 @@ export default function App(): React.JSX.Element {
         </div>
       </header>
 
+      {storageError && <div className="banner err" role="alert">{storageError}</div>}
       {route === 'home' && (
         <HomeView
           meetings={meetings}

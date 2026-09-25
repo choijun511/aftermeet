@@ -1,6 +1,7 @@
 import React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import type { Meeting, StatusEvent } from '../../../shared/types'
+import ProcessingCard from './ProcessingCard'
 import { renderMarkdown } from '../md'
 import { fmtWhen, fmtDuration } from '../util'
 import {
@@ -74,8 +75,8 @@ export default function MeetingDetailView({
   }
 
   const m = meeting
-  const processing =
-    !m.minutes && !m.llmError && (status.state === 'summarizing' || status.state === 'transcribing')
+  const busy = !['idle', 'error'].includes(status.state)
+  const processing = status.meetingId === m.id && (status.state === 'summarizing' || status.state === 'transcribing')
 
   const saveTitle = async (): Promise<void> => {
     if (title.trim() && title.trim() !== m.title) {
@@ -95,15 +96,18 @@ export default function MeetingDetailView({
   }
   const del = async (): Promise<void> => {
     if (!confirm(`删除会议「${m.title}」?此操作不可恢复。`)) return
-    await window.api.deleteMeeting(m.id)
+    const result = await window.api.deleteMeeting(m.id)
+    if (!result.ok) { setGenerationError('请等待当前录制或处理完成后删除'); return }
     onChanged()
     onBack()
   }
   const toggleTodo = async (tid: string): Promise<void> => {
+    if (busy) return
     await window.api.toggleTodo(m.id, tid)
     onChanged()
   }
   const openFeishu = async (): Promise<void> => {
+    if (busy) return
     setFeishuModal(true)
     setFeishuErr('')
     setCandidates([])
@@ -134,7 +138,7 @@ export default function MeetingDetailView({
     }
   }
   const switchLocal = async (): Promise<void> => {
-    if (m.notesSource !== 'feishu') return
+    if (busy || m.notesSource !== 'feishu') return
     setApplying(true)
     await window.api.useLocalNotes(m.id)
     onChanged()
@@ -192,6 +196,7 @@ export default function MeetingDetailView({
               className="page-h"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
               onClick={() => {
+                if (busy) return
                 setTitle(m.title)
                 setEditing(true)
               }}
@@ -204,19 +209,21 @@ export default function MeetingDetailView({
             {fmtWhen(m.startedAt)} · {fmtDuration(m.durationSec)} · {m.transcript.length} 字
           </div>
         </div>
-        <button className="btn ghost" onClick={() => regen()} disabled={regenerating || processing}>
-          {regenerating ? <span className="spin" /> : <IcRefresh size={14} />} 重新生成
+        <button className="btn ghost" onClick={() => regen()} disabled={regenerating || busy}>
+          {regenerating ? <span className="spin" /> : <IcRefresh size={14} />} 重新生成纪要
         </button>
-        <button className="btn soft" onClick={() => regen('deep')} disabled={regenerating || processing || !m.transcript.trim()}>
+        <button className="btn soft" onClick={() => regen('deep')} disabled={regenerating || busy || !m.transcript.trim()}>
           Sol 深度分析
         </button>
         <button className="btn ghost" onClick={() => window.api.openTranscriptsFolder()}>
           <IcFolder size={14} />
         </button>
-        <button className="btn ghost" onClick={del}>
+        <button className="btn ghost" onClick={del} disabled={busy}>
           <IcTrash size={14} />
         </button>
       </div>
+
+      <ProcessingCard key={m.id} meeting={m} status={status} onChanged={onChanged} />
 
       {(m.notesModel || m.transcriptionModel) && <div className="muted" style={{ marginBottom: 12 }}>
         转写：{m.transcriptionModel || '本地实时字幕'} · 纪要：{m.notesModel || '尚未生成'}
@@ -270,7 +277,7 @@ export default function MeetingDetailView({
 
           {processing && (
             <div className="card pad-lg" style={{ textAlign: 'center' }}>
-              <span className="spin" /> <span className="muted">正在生成会议纪要…</span>
+              <span className="spin" /> <span className="muted">{status.message || (status.state === 'transcribing' ? '正在转写录音…' : '正在生成会议纪要…')}</span>
             </div>
           )}
 

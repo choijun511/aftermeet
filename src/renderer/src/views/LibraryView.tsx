@@ -1,7 +1,7 @@
 import React from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Meeting } from '../../../shared/types'
-import { fmtWhen, fmtDuration, initials } from '../util'
+import { fmtWhen, fmtDuration, initials, meetingStatus } from '../util'
 import { IcSearch, IcCheck, IcLibrary } from '../icons'
 
 type Filter = 'all' | 'week' | 'minutes'
@@ -138,13 +138,7 @@ export default function LibraryView({
                   )}
                 </span>
                 <span style={{ width: 100 }}>
-                  {m.minutes ? (
-                    <span className="chip green">已生成</span>
-                  ) : m.llmError ? (
-                    <span className="chip gray">仅转写</span>
-                  ) : (
-                    <span className="chip gray">处理中</span>
-                  )}
+                  <span className={`chip ${meetingStatus(m) === '已生成' ? 'green' : 'gray'}`}>{meetingStatus(m)}</span>
                 </span>
               </a>
             )

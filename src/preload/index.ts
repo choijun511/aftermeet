@@ -26,6 +26,8 @@ const api: AfterMeetApi = {
   listMeetings: () => ipcRenderer.invoke('meetings:list'),
   getMeeting: (id) => ipcRenderer.invoke('meetings:get', id),
   deleteMeeting: (id) => ipcRenderer.invoke('meetings:delete', id),
+  retranscribe: (id, options) => ipcRenderer.invoke('meetings:retranscribe', id, options),
+  cancelProcessing: (id) => ipcRenderer.invoke('meetings:cancelProcessing', id),
   regenerate: (id, mode = 'standard') => ipcRenderer.invoke('meetings:regenerate', id, mode),
   modelStatus: () => ipcRenderer.invoke('app:modelStatus'),
   toggleTodo: (meetingId, todoId) =>
