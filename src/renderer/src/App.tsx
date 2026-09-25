@@ -88,6 +88,7 @@ export default function App(): React.JSX.Element {
   // ⌘K → 会议库搜索
   useEffect(() => {
     const h = (e: KeyboardEvent): void => {
+      if ((e.target as HTMLElement)?.closest('[role=dialog]')) return
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         librarySearchFocus.current = true
@@ -139,6 +140,7 @@ export default function App(): React.JSX.Element {
             <button
               key={key}
               className={route === key ? 'active' : ''}
+              aria-current={route === key ? 'page' : undefined}
               onClick={() => setRoute(key)}
             >
               <Icon size={16} strokeWidth={route === key ? 2.4 : 2} />
@@ -221,6 +223,7 @@ export default function App(): React.JSX.Element {
           settings={settings}
           hasKey={hasKey}
           onChange={async (k, v) => setSettings(await window.api.setSetting(k, v))}
+          onModeChange={async (mode) => setSettings(await window.api.setTranscriptionMode(mode))}
         />
       )}
       {route === 'detail' && (
@@ -252,7 +255,7 @@ export default function App(): React.JSX.Element {
       )}
 
       {notice && (
-        <div className="toast">
+        <div className="toast" role="status">
           <span className="d" />
           {notice}
         </div>

@@ -1,3 +1,4 @@
+import { transcriptionSettings } from '../../shared/transcription-mode'
 // 仅用于「浏览器中预览 UI」的假数据。Electron 里 window.api 由 preload 注入,永不走这里。
 import type { AfterMeetApi, CalendarEvent, Meeting, StatusEvent } from '../../shared/types'
 
@@ -135,6 +136,7 @@ export function installMockApi(): void {
     }),
     renameMeeting: async () => ({ ok: true }),
     askMeeting: async (_id, q) => ({ ok: true, answer: `关于「${q}」:根据这场会议的转写,主要提到了首日留存提升到 38%。` }),
+    setTranscriptionMode: async (mode) => ({ autoStart: true, autoMinutes: true, ...transcriptionSettings(mode) }),
     getSettings: async () => ({ cloudAsr: true, autoStart: true, twoPass: true, autoMinutes: true }),
     setSetting: async (k, v) => ({ cloudAsr: true, autoStart: true, twoPass: true, autoMinutes: true, [k]: v }),
     storageInfo: async () => ({ dir: '~/Library/Application Support/AfterMeet/transcripts' }),

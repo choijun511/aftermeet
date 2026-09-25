@@ -158,13 +158,14 @@ function LiveRecording({
             </div>
             <div className="spacer" />
             {status.meetingId && (
-              <span
-                className="link"
+              <button
+                aria-expanded={showAssoc}
+                className="link plain-button"
                 style={{ color: '#b9bdc9' }}
                 onClick={() => setShowAssoc((v) => !v)}
               >
                 {showAssoc ? '收起' : '选择'}
-              </span>
+              </button>
             )}
           </div>
           {current?.title && !showAssoc && (
@@ -176,9 +177,9 @@ function LiveRecording({
                 <div style={{ fontSize: 12, color: '#b9bdc9' }}>今天没有可关联的日程</div>
               )}
               {events.map((e) => (
-                <div
+                <button
                   key={e.eventId}
-                  className="chip dark-tint"
+                  className="plain-button chip dark-tint"
                   style={{ cursor: 'pointer', padding: '7px 12px', justifyContent: 'space-between' }}
                   onClick={() => {
                     if (status.meetingId) onAssociate(status.meetingId, e)
@@ -189,7 +190,7 @@ function LiveRecording({
                     {hhmm(e.startTime)} · {e.title}
                   </span>
                   <IcChevronRight size={13} />
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -280,9 +281,9 @@ function StartPanel({
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {events.slice(0, 4).map((e) => (
-                  <div
+                  <button
                     key={e.eventId}
-                    className="opt-tile"
+                    className="opt-tile plain-button"
                     onClick={() => onStart(e.title, e)}
                   >
                     <IcCalendar size={16} className="muted" />
@@ -293,7 +294,7 @@ function StartPanel({
                       </div>
                     </div>
                     <IcChevronRight size={14} className="muted" />
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>

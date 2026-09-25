@@ -12,6 +12,9 @@ export default function ProcessingCard({ meeting: m, status, onChanged }: {
   const busy = !['idle', 'error'].includes(status.state)
   const active = busy && status.meetingId === m.id
   const p = m.processing
+  const needsAttention = !m.transcript.trim() || p?.state === 'failed' || p?.state === 'paused' || m.notesStale || !!m.llmError
+  const [expanded, setExpanded] = useState(false)
+  const show = expanded || active || needsAttention
   const phases = { recording: '保存录音', saved: '录音已保存', transcribing: '转写录音', summarizing: '生成纪要', complete: '处理完成' }
   const states = { running: '处理中', paused: '已暂停，可继续', failed: '未完成，可重试', done: '已完成' }
   const run = async (): Promise<void> => {
@@ -29,10 +32,11 @@ export default function ProcessingCard({ meeting: m, status, onChanged }: {
       if (!result.ok) setError(result.error || '暂时无法取消')
     } catch (e) { setError(String(e)) }
   }
-  return <section className="card pad-lg" style={{ marginBottom: 16 }} aria-label="录音处理与恢复">
+  return <details open={show} onToggle={(e) => setExpanded(e.currentTarget.open)} className="card processing-card" style={{ marginBottom: 16 }} aria-label="录音处理与恢复">
+    <summary>录音处理与恢复 · {p ? `${phases[p.stage]} · ${states[p.state]}` : '历史会议'}</summary>
+    <div className="processing-body">
     <div className="row" style={{ flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
-      <h2 className="card-title" style={{ margin: 0 }}>录音处理与恢复</h2>
-      <span>{p ? `${phases[p.stage]} · ${states[p.state]}` : '历史会议'}</span>
+
       {active && ['transcribing', 'summarizing'].includes(status.state) &&
         <button className="btn soft" onClick={cancel}>取消处理，保留录音</button>}
     </div>
@@ -68,5 +72,6 @@ export default function ProcessingCard({ meeting: m, status, onChanged }: {
       {active && <p>取消会保留已完成结果；已提交的云端任务可能继续运行并计费。</p>}
     </> : <p>未找到关联录音，仍可用已有文字重新生成纪要。</p>}
     {error && <div className="banner err" role="alert" style={{ marginTop: 12 }}>{error}</div>}
-  </section>
+    </div>
+  </details>
 }

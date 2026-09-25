@@ -1,3 +1,5 @@
+import Modal from '../components/Modal'
+import Switch from '../components/Switch'
 import React from 'react'
 import { useEffect, useState, useCallback } from 'react'
 import type {
@@ -113,15 +115,15 @@ export default function HomeView({
             </div>
             <div className="spacer" />
             <div className="date-switch">
-              <span className="arw" onClick={() => setOffset((o) => o - 1)}>
+              <button className="arw plain-button" aria-label="前一天" onClick={() => setOffset((o) => o - 1)}>
                 <IcChevronLeft size={14} />
-              </span>
-              <span className="cur" onClick={() => setOffset(0)}>
+              </button>
+              <button className="cur plain-button" aria-label="回到今天" onClick={() => setOffset(0)}>
                 {offset === 0 ? '今天' : label}
-              </span>
-              <span className="arw" onClick={() => setOffset((o) => o + 1)}>
+              </button>
+              <button className="arw plain-button" aria-label="后一天" onClick={() => setOffset((o) => o + 1)}>
                 <IcChevronRight size={14} />
-              </span>
+              </button>
             </div>
             <button className="refresh-btn" onClick={() => load(offset)} title="刷新">
               <IcRefresh size={15} className={loading ? 'spin-ic' : ''} />
@@ -177,9 +179,9 @@ export default function HomeView({
                       </button>
                     )}
                     {isNext && offset === 0 && !recording && (
-                      <a className="rec-here" onClick={() => onStart(e.title, e)}>
+                      <button className="rec-here plain-button" onClick={() => onStart(e.title, e)}>
                         ● 在此录制
-                      </a>
+                      </button>
                     )}
                     {done && <span className="chip gray">已结束</span>}
                   </div>
@@ -200,12 +202,7 @@ export default function HomeView({
                 检测到会议开始,自动录制
               </div>
             </div>
-            <div
-              className={`toggle${settings.autoStart ? ' on' : ''}`}
-              onClick={() => onToggleAutoStart(!settings.autoStart)}
-            >
-              <div className="knob" />
-            </div>
+            <Switch label="自动录制" checked={settings.autoStart} onChange={onToggleAutoStart} />
           </div>
         </div>
 
@@ -222,13 +219,13 @@ export default function HomeView({
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {undone.slice(0, 5).map(({ t, m }) => (
-                <div key={t.id} className="todo-item" onClick={() => onOpen(m.id)} style={{ cursor: 'pointer' }}>
+                <a href="#meeting" key={t.id} className="todo-item meeting-link" aria-label={`打开待办来源会议：${t.text}`} onClick={(e) => { e.preventDefault(); onOpen(m.id) }}>
                   <div className="check" />
                   <div className="tx">
                     {t.text}
                     {t.owner && <span className="muted"> · {t.owner}</span>}
                   </div>
-                </div>
+                </a>
               ))}
             </div>
           )}
@@ -244,7 +241,7 @@ export default function HomeView({
             </div>
           ) : (
             recent.map((m) => (
-              <a key={m.id} className="recent-row" onClick={() => onOpen(m.id)}>
+              <a href="#meeting" key={m.id} className="recent-row" onClick={(e) => { e.preventDefault(); onOpen(m.id) }}>
                 <div className="avatar">{initials(m.title)}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="t" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -297,11 +294,11 @@ function PrepModal({
 }): React.JSX.Element {
   return (
     <div className="modal-scrim" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <Modal label="会前简报" onClose={onClose}>
         <div className="row" style={{ marginBottom: 4 }}>
           <div className="chip coralsolid">会前简报</div>
           <div className="spacer" />
-          <button className="back-btn" onClick={onClose}>
+          <button className="back-btn" aria-label="关闭会前简报" onClick={onClose}>
             <IcX size={16} />
           </button>
         </div>
@@ -419,7 +416,7 @@ function PrepModal({
             开始录制本场
           </button>
         )}
-      </div>
+      </Modal>
     </div>
   )
 }

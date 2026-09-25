@@ -1,3 +1,4 @@
+import Modal from '../components/Modal'
 import React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import type { Meeting, StatusEvent } from '../../../shared/types'
@@ -67,7 +68,7 @@ export default function MeetingDetailView({
   if (!meeting) {
     return (
       <div className="content">
-        <button className="back-btn" onClick={onBack}>
+        <button className="back-btn" aria-label="返回会议库" onClick={onBack}>
           <IcArrowLeft size={17} />
         </button>
         <div className="empty-state">会议不存在或已删除</div>
@@ -177,14 +178,15 @@ export default function MeetingDetailView({
   return (
     <div className="content">
       {/* 头部 */}
-      <div className="row" style={{ marginBottom: 18 }}>
-        <button className="back-btn" onClick={onBack}>
+      <div className="row detail-heading" style={{ marginBottom: 14 }}>
+        <button className="back-btn" aria-label="返回会议库" onClick={onBack}>
           <IcArrowLeft size={17} />
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           {editing ? (
             <input
               className="txt-input"
+              aria-label="会议标题"
               style={{ fontSize: 18, fontWeight: 800, width: '100%', maxWidth: 480 }}
               value={title}
               autoFocus
@@ -193,8 +195,10 @@ export default function MeetingDetailView({
               onKeyDown={(e) => e.key === 'Enter' && saveTitle()}
             />
           ) : (
-            <div
-              className="page-h"
+            <button
+              disabled={busy}
+              aria-label={`编辑会议标题：${m.title}`}
+              className="plain-button page-h"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
               onClick={() => {
                 if (busy) return
@@ -204,7 +208,7 @@ export default function MeetingDetailView({
             >
               {m.title}
               <IcEdit size={15} className="muted" />
-            </div>
+            </button>
           )}
           <div className="page-sub">
             {fmtWhen(m.startedAt)} · {fmtDuration(m.durationSec)} · {m.transcript.length} 字
@@ -216,10 +220,10 @@ export default function MeetingDetailView({
         <button className="btn soft" onClick={() => regen('deep')} disabled={regenerating || busy || !m.transcript.trim()}>
           Sol 深度分析
         </button>
-        <button className="btn ghost" onClick={() => window.api.openTranscriptsFolder()}>
+        <button className="btn ghost" aria-label="打开录音存档文件夹" onClick={() => window.api.openTranscriptsFolder()}>
           <IcFolder size={14} />
         </button>
-        <button className="btn ghost" onClick={del} disabled={busy}>
+        <button className="btn ghost" aria-label="删除会议" onClick={del} disabled={busy}>
           <IcTrash size={14} />
         </button>
       </div>
@@ -228,10 +232,12 @@ export default function MeetingDetailView({
 
       <ProcessingCard key={m.id} meeting={m} status={status} onChanged={onChanged} />
 
-      {(m.notesModel || m.transcriptionModel) && <div className="muted" style={{ marginBottom: 12 }}>
+      <details className="technical-details"><summary>处理记录与模型信息{m.transcriptionWarning ? ' · 有回退记录' : ''}</summary>
+      {(m.notesModel || m.transcriptionModel) && <div className="muted" style={{ margin: '8px 0' }}>
         转写：{m.transcriptionModel || '本地实时字幕'} · 纪要：{m.notesModel || '尚未生成'}
       </div>}
       {m.transcriptionWarning && <div className="banner err" style={{ marginBottom: 12 }}>{m.transcriptionWarning}</div>}
+      </details>
       {generationError && <div className="banner err" style={{ marginBottom: 12 }}>{generationError}</div>}
       {m.llmError && (
         <div className="banner err" style={{ marginBottom: 16 }}>
@@ -245,15 +251,17 @@ export default function MeetingDetailView({
           纪要来源
         </span>
         <div className="filter-group">
-          <span className={source === 'local' ? 'on' : ''} onClick={switchLocal}>
+          <button disabled={busy || applying} aria-pressed={source === 'local'} className={source === 'local' ? 'on' : ''} onClick={switchLocal}>
             本地录制
-          </span>
-          <span
+          </button>
+          <button
+            disabled={busy || applying}
+            aria-pressed={source === 'feishu'}
             className={source === 'feishu' ? 'on' : ''}
             onClick={() => (source === 'feishu' && m.feishuTranscript ? undefined : openFeishu())}
           >
             飞书妙记
-          </span>
+          </button>
         </div>
         {source === 'feishu' && (
           <span className="chip green">
@@ -261,14 +269,14 @@ export default function MeetingDetailView({
           </span>
         )}
         {m.feishuTranscript && (
-          <span className="link" onClick={openFeishu}>
+          <button className="link plain-button" disabled={busy || applying} onClick={openFeishu}>
             重新拉取
-          </span>
+          </button>
         )}
         {applying && <span className="spin" />}
       </div>
 
-      <div className="cols" style={{ display: 'flex', gap: 20 }}>
+      <div className="cols detail-columns" style={{ display: 'flex', gap: 20 }}>
         {/* 左:纪要 + 转写 */}
         <div style={{ flex: '1.5', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
           {m.minutes?.topic && (
@@ -284,6 +292,14 @@ export default function MeetingDetailView({
             </div>
           )}
 
+          {m.minutes && (
+            <div className="mins-card">
+              <Section title="决议" items={m.minutes.decisions} kind="check" />
+              <Section title="要点" items={m.minutes.keyPoints} kind="dot" />
+              <Section title="风险 / 待确认" items={m.minutes.risks} kind="bang" />
+            </div>
+          )}
+
           {m.summary && (
             <div className="mins-card">
               <div className="card-title" style={{ marginBottom: 10 }}>
@@ -293,14 +309,6 @@ export default function MeetingDetailView({
                 className="md-body"
                 dangerouslySetInnerHTML={{ __html: renderMarkdown(m.summary) }}
               />
-            </div>
-          )}
-
-          {m.minutes && (
-            <div className="mins-card">
-              <Section title="要点" items={m.minutes.keyPoints} kind="dot" />
-              <Section title="决议" items={m.minutes.decisions} kind="check" />
-              <Section title="风险 / 待确认" items={m.minutes.risks} kind="bang" />
             </div>
           )}
 
@@ -342,9 +350,8 @@ export default function MeetingDetailView({
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {m.todos.map((t) => (
                   <div key={t.id} className={`todo-item${t.done ? ' done' : ''}`}>
-                    <div className={`check${t.done ? ' done' : ''}`} onClick={() => toggleTodo(t.id)}>
-                      {t.done && <IcCheck size={12} />}
-                    </div>
+                    <input type="checkbox" className="todo-check" checked={t.done} disabled={busy}
+                      aria-label={`完成待办：${t.text}`} onChange={() => toggleTodo(t.id)} />
                     <div className="tx">
                       {t.text}
                       {(t.owner || t.due) && (
@@ -391,13 +398,14 @@ export default function MeetingDetailView({
             <div className="row" style={{ gap: 8 }}>
               <input
                 className="ai-input"
+                aria-label="向 AI 提问"
                 placeholder="输入问题…"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && ask()}
                 disabled={!m.transcript}
               />
-              <button className="ai-send" onClick={ask} disabled={asking || !q.trim() || !m.transcript}>
+              <button aria-label="发送问题" className="ai-send" onClick={ask} disabled={asking || !q.trim() || !m.transcript}>
                 <IcSend size={16} />
               </button>
             </div>
@@ -407,11 +415,11 @@ export default function MeetingDetailView({
 
       {feishuModal && (
         <div className="modal-scrim" onClick={() => !applying && setFeishuModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <Modal label="用飞书妙记生成纪要" onClose={() => !applying && setFeishuModal(false)}>
             <div className="row" style={{ marginBottom: 4 }}>
               <div className="card-title lg">用飞书妙记生成纪要</div>
               <div className="spacer" />
-              <button className="back-btn" onClick={() => !applying && setFeishuModal(false)}>
+              <button className="back-btn" aria-label="关闭飞书妙记窗口" onClick={() => !applying && setFeishuModal(false)}>
                 <IcX size={16} />
               </button>
             </div>
@@ -436,7 +444,7 @@ export default function MeetingDetailView({
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 240, overflowY: 'auto' }}>
                 {candidates.map((c) => (
-                  <div key={c.meetingId} className="opt-tile" style={{ cursor: applying ? 'default' : 'pointer' }} onClick={() => !applying && applyFeishu({ feishuMeetingId: c.meetingId })}>
+                  <button disabled={applying} key={c.meetingId} className="opt-tile plain-button" style={{ cursor: applying ? 'default' : 'pointer' }} onClick={() => !applying && applyFeishu({ feishuMeetingId: c.meetingId })}>
                     <IcVideo size={16} className="muted" />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -447,7 +455,7 @@ export default function MeetingDetailView({
                       </div>
                     </div>
                     <span className="chip gray">用这个</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -460,6 +468,7 @@ export default function MeetingDetailView({
               <input
                 className="txt-input"
                 style={{ flex: 1, background: 'var(--tile)' }}
+                aria-label="飞书妙记链接"
                 placeholder="https://…larkoffice.com/minutes/xxxx"
                 value={minuteInput}
                 onChange={(e) => setMinuteInput(e.target.value)}
@@ -473,7 +482,7 @@ export default function MeetingDetailView({
                 {applying ? <span className="spin" /> : '生成'}
               </button>
             </div>
-          </div>
+          </Modal>
         </div>
       )}
     </div>

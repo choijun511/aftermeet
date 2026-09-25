@@ -1,3 +1,4 @@
+import Switch from '../components/Switch'
 import React from 'react'
 import { useState } from 'react'
 import type { Meeting } from '../../../shared/types'
@@ -36,9 +37,7 @@ export default function TodosView({ meetings, onChanged, onOpen }: Props): React
           <span className="muted" style={{ fontSize: 12.5 }}>
             隐藏已完成
           </span>
-          <div className={`toggle${hideDone ? ' on' : ''}`} onClick={() => setHideDone((v) => !v)}>
-            <div className="knob" />
-          </div>
+          <Switch label="隐藏已完成" checked={hideDone} onChange={setHideDone} />
         </div>
       </div>
 
@@ -53,7 +52,7 @@ export default function TodosView({ meetings, onChanged, onOpen }: Props): React
         <div className="grid2">
           {groups.map(({ m, todos }) => (
             <div key={m.id} className="card pad">
-              <div className="row" style={{ marginBottom: 12, cursor: 'pointer' }} onClick={() => onOpen(m.id)}>
+              <a href="#meeting" className="row meeting-link" style={{ marginBottom: 12 }} onClick={(e) => { e.preventDefault(); onOpen(m.id) }}>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div
                     className="card-title"
@@ -71,13 +70,12 @@ export default function TodosView({ meetings, onChanged, onOpen }: Props): React
                   </div>
                 </div>
                 <IcChevronRight size={16} className="muted" />
-              </div>
+              </a>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {todos.map((t) => (
                   <div key={t.id} className={`todo-item${t.done ? ' done' : ''}`}>
-                    <div className={`check${t.done ? ' done' : ''}`} onClick={() => toggle(m.id, t.id)}>
-                      {t.done && <IcCheck size={12} />}
-                    </div>
+                    <input type="checkbox" className="todo-check" checked={t.done}
+                      aria-label={`完成待办：${t.text}`} onChange={() => toggle(m.id, t.id)} />
                     <div className="tx">
                       {t.text}
                       {(t.owner || t.due) && (

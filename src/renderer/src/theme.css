@@ -643,7 +643,7 @@ input {
   border-radius: 999px;
   padding: 3px;
 }
-.filter-group span {
+.filter-group button {
   padding: 7px 16px;
   border-radius: 999px;
   font-size: 12.5px;
@@ -651,10 +651,10 @@ input {
   color: var(--text2);
   cursor: pointer;
 }
-.filter-group span:hover {
+.filter-group button:hover {
   background: #fff;
 }
-.filter-group span.on {
+.filter-group button.on {
   background: var(--ink);
   color: #fff;
   font-weight: 700;
@@ -1091,3 +1091,24 @@ input {
 .md-body :last-child {
   margin-bottom: 0;
 }
+
+/* Shared keyboard and native control semantics. Keep after component resets. */
+.plain-button { border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; padding: 0; }
+.plain-button.page-h { font-size: 22px; font-weight: 800; }
+.meeting-link { color: inherit; text-decoration: none; cursor: pointer; }
+.filter-group button { border: 0; background: transparent; font-family: inherit; }
+.toggle { border: 0; padding: 0; }
+.todo-check { appearance: auto; width: 20px; height: 20px; margin: 2px; flex: none; accent-color: var(--green); cursor: pointer; }
+:is(button, a, input, select, textarea, summary):focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+.recording-player { padding: 12px 18px; }
+.playback-segments { margin-top: 8px; }
+summary { cursor: pointer; font-weight: 600; }
+.processing-card { padding: 12px 18px; }
+.processing-body { padding-top: 12px; }
+.technical-details { margin: 0 0 12px; font-size: 12px; color: var(--text2); }
+.detail-heading { flex-wrap: wrap; }
+@media (max-width: 1000px) { .detail-columns { flex-direction: column; } }
+
+.plain-button.opt-tile { background: var(--tile); border: 2px solid transparent; padding: 11px 14px; }
+.plain-button.rec-here { background: #fff; color: var(--ink); padding: 7px 14px; }

@@ -1,3 +1,5 @@
+import Switch from '../components/Switch'
+import { transcriptionMode, effectiveTranscriptionMode, type TranscriptionMode } from '../../../shared/transcription-mode'
 import React from 'react'
 import { useEffect, useState } from 'react'
 import type { AppSettings, AfterMeetApi } from '../../../shared/types'
@@ -7,16 +9,25 @@ import { IcMic, IcSparkles, IcCalendar, IcFolder, IcCheck, IcX } from '../icons'
 interface Props {
   settings: AppSettings
   hasKey: boolean
-  onChange: (key: keyof AppSettings, value: boolean) => void
+  onChange: (key: keyof AppSettings, value: boolean) => Promise<void>
+  onModeChange: (mode: TranscriptionMode) => Promise<void>
 }
 
-export default function SettingsView({ settings, onChange }: Props): React.JSX.Element {
+export default function SettingsView({ settings, onChange, onModeChange }: Props): React.JSX.Element {
   const [feishu, setFeishu] = useState<{ available: boolean; authed: boolean } | null>(null)
   const [models, setModels] = useState<Awaited<ReturnType<AfterMeetApi['modelStatus']>> | null>(null)
   const [dir, setDir] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const save = async (change: () => Promise<void>): Promise<void> => {
+    setSaving(true); setError('')
+    try { await change() } catch { setError('设置未保存，请重试。原设置仍然有效。') } finally { setSaving(false) }
+  }
+  const mode = transcriptionMode(settings)
+  const modeLabels = { live: '仅实时字幕', local: '本地 Whisper 精转', qwen: 'Qwen 云端精转' }
 
   useEffect(() => {
-    window.api.modelStatus().then(setModels)
+    window.api.modelStatus().then(setModels).catch(() => setError('无法读取模型配置，请重新打开设置'))
     window.api.feishuStatus().then(setFeishu)
     window.api.storageInfo().then((r) => setDir(r.dir))
   }, [])
@@ -28,6 +39,8 @@ export default function SettingsView({ settings, onChange }: Props): React.JSX.E
         <div className="page-sub">录音权限、转写、纪要与存储</div>
       </div>
 
+      {error && <p className="banner err" role="alert">{error}</p>}
+      {saving && <p role="status">正在保存设置…</p>}
       <PermissionCard />
       <div className="grid2">
         {/* 转写 */}
@@ -38,26 +51,25 @@ export default function SettingsView({ settings, onChange }: Props): React.JSX.E
             </div>
             <div className="card-title">转写</div>
           </div>
-          <ToggleRow
-            title="停止后高精度重转"
-            desc="录制结束重新处理完整录音；云端不可用时回退本地 Whisper"
-            on={settings.twoPass}
-            onToggle={() => onChange('twoPass', !settings.twoPass)}
-          />
-          <ToggleRow
-            title="Qwen 云端精转"
-            desc="开启后将录音上传至阿里云转写并区分说话人；关闭后仅使用本地 Whisper。需同时开启高精度重转。"
-            on={settings.cloudAsr}
-            onToggle={() => onChange('cloudAsr', !settings.cloudAsr)}
-          />
-          <div className="tile" style={{ padding: '12px 14px', marginTop: 12, fontSize: 12.5 }}>
-            <span className="muted">引擎</span>
-            <div style={{ fontWeight: 600, marginTop: 2 }}>
-              本地实时字幕 + {settings.cloudAsr ? 'Qwen 云端精转' : 'Whisper 本地精转'}
-            </div>
-            <div className="muted" style={{ marginTop: 6, fontSize: 11.5 }}>
-              {models?.qwen ? 'Qwen 密钥已配置' : 'Qwen 密钥未配置，将使用本地精转'}。长录音自动分段；不同分段的说话人编号独立。
-            </div>
+          <label htmlFor="transcription-mode" className="card-title">录制结束后的转写方式</label>
+          <select id="transcription-mode" aria-describedby="transcription-mode-help" className="txt-input" style={{ width: '100%', marginTop: 10 }}
+            value={mode} disabled={saving} onChange={(e) => void save(() => onModeChange(e.target.value as TranscriptionMode))}>
+            <option value="live">仅实时字幕</option>
+            <option value="local">本地精转（不上传音频）</option>
+            <option value="qwen">云端精转（上传至阿里云，可能计费）</option>
+          </select>
+          <p id="transcription-mode-help" className="muted" style={{ fontSize: 13 }}>
+            {mode === 'live' ? '保留会中实时字幕，停止后不重新识别完整录音。' : mode === 'local'
+              ? '停止后使用本地 Whisper 重新识别完整录音。'
+              : '停止后上传录音至 Qwen 精转；云端不可用时尝试本地 Whisper。长录音自动分段，说话人编号在各段内独立。'}
+          </p>
+          <div className="tile" role="status" style={{ padding: '12px 14px', fontSize: 13 }}>
+            <strong>当前生效：{models ? modeLabels[effectiveTranscriptionMode(settings, models.qwen)] : '正在读取配置…'}</strong>
+            {mode === 'qwen' && models && <div style={{ marginTop: 6 }}>
+              {models.qwen ? '已检测到 Qwen 密钥；尚未验证服务连接，实际结果以转写任务为准。'
+                : '未检测到 Qwen 密钥，将使用本地精转。配置密钥并重启后，云端选项才会生效。'}
+            </div>}
+            <div className="muted" style={{ marginTop: 6 }}>会中实时字幕始终在本机运行；自动生成纪要由右侧单独控制。</div>
           </div>
         </div>
 
@@ -73,14 +85,15 @@ export default function SettingsView({ settings, onChange }: Props): React.JSX.E
             title="录制结束自动生成纪要"
             desc="默认 Luna 生成纪要；会议详情可点 Sol 深度分析"
             on={settings.autoMinutes}
-            onToggle={() => onChange('autoMinutes', !settings.autoMinutes)}
+            disabled={saving}
+            onToggle={() => void save(() => onChange('autoMinutes', !settings.autoMinutes))}
           />
           <div className="opt-tile" style={{ marginTop: 12, cursor: 'default', borderColor: models?.openai ? 'var(--green)' : 'transparent' }}>
             <StatusDot ok={!!models?.openai} />
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 13 }}>OpenAI API Key</div>
               <div className="muted" style={{ fontSize: 11.5 }}>
-                {models?.openai ? `已配置：${models.standard} / ${models.deep}` : '未配置，请在本机 .env 中填写 OPENAI_API_KEY'}
+                {models === null ? '读取配置中…' : models.openai ? `已检测到密钥：${models.standard} / ${models.deep}；尚未验证服务连接` : '未配置，请在本机 .env 中填写 OPENAI_API_KEY'}
               </div>
             </div>
           </div>
@@ -98,7 +111,8 @@ export default function SettingsView({ settings, onChange }: Props): React.JSX.E
             title="自动录制"
             desc="检测到会议音频活跃时,自动开始录制"
             on={settings.autoStart}
-            onToggle={() => onChange('autoStart', !settings.autoStart)}
+            disabled={saving}
+            onToggle={() => void save(() => onChange('autoStart', !settings.autoStart))}
           />
           <div
             className="opt-tile"
@@ -163,12 +177,14 @@ function ToggleRow({
   title,
   desc,
   on,
-  onToggle
+  onToggle,
+  disabled
 }: {
   title: string
   desc: string
   on: boolean
   onToggle: () => void
+  disabled?: boolean
 }): React.JSX.Element {
   return (
     <div className="row" style={{ alignItems: 'flex-start' }}>
@@ -178,9 +194,7 @@ function ToggleRow({
           {desc}
         </div>
       </div>
-      <div className={`toggle${on ? ' on' : ''}`} onClick={onToggle}>
-        <div className="knob" />
-      </div>
+      <Switch label={title} checked={on} disabled={disabled} onChange={onToggle} />
     </div>
   )
 }

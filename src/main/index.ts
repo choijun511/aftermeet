@@ -1,3 +1,5 @@
+import { transcriptionSettings, type TranscriptionMode } from '../shared/transcription-mode'
+import { setSettings } from './store'
 import { app, BrowserWindow, ipcMain, shell, systemPreferences, protocol } from 'electron'
 import { join } from 'path'
 import { existsSync, readFileSync, appendFileSync } from 'fs'
@@ -289,6 +291,10 @@ function registerIpc(): void {
   ipcMain.handle('app:hasApiKey', () => hasApiKey())
   ipcMain.handle('app:storageInfo', () => ({ dir: transcriptsDir() }))
   ipcMain.handle('app:openPath', (_e, p: string) => shell.openPath(p))
+  ipcMain.handle('settings:transcriptionMode', (_event, mode: TranscriptionMode) => {
+    setSettings(transcriptionSettings(mode))
+    return currentSettings()
+  })
   ipcMain.handle('settings:get', () => currentSettings())
   ipcMain.handle('settings:set', (_e, key: keyof AppSettings, value: boolean) => {
     if (!['cloudAsr', 'autoStart', 'twoPass', 'autoMinutes'].includes(key) || typeof value !== 'boolean') throw new Error('设置参数无效')

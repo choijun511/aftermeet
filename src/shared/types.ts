@@ -197,6 +197,7 @@ export interface AfterMeetApi {
   /** 就本场会议转写问 AI(Gemini,仅基于本场转写作答) */
   askMeeting(id: string, question: string): Promise<{ ok: boolean; answer: string; error?: string }>
   /** 设置读写 */
+  setTranscriptionMode(mode: import('./transcription-mode').TranscriptionMode): Promise<AppSettings>
   getSettings(): Promise<AppSettings>
   setSetting(key: keyof AppSettings, value: boolean): Promise<AppSettings>
   /** 存储信息 */

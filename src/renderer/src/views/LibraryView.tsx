@@ -56,6 +56,7 @@ export default function LibraryView({
             ref={inputRef}
             className="search-input"
             style={{ paddingLeft: 38 }}
+            aria-label="搜索标题或转写内容"
             placeholder="搜索标题或转写内容…"
             value={search}
             onChange={(e) => onSearch(e.target.value)}
@@ -72,9 +73,9 @@ export default function LibraryView({
               ['minutes', '有纪要']
             ] as [Filter, string][]
           ).map(([k, label]) => (
-            <span key={k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>
+            <button key={k} aria-pressed={filter === k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>
               {label}
-            </span>
+            </button>
           ))}
         </div>
       </div>
@@ -98,7 +99,7 @@ export default function LibraryView({
           rows.map((m) => {
             const undone = m.todos.filter((t) => !t.done).length
             return (
-              <a key={m.id} className="tbl-row" onClick={() => onOpen(m.id)}>
+              <a href="#meeting" key={m.id} className="tbl-row" onClick={(e) => { e.preventDefault(); onOpen(m.id) }}>
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', gap: 12, alignItems: 'center' }}>
                   <div className="avatar">{initials(m.title)}</div>
                   <div style={{ minWidth: 0 }}>

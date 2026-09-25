@@ -21,6 +21,7 @@ const api: AfterMeetApi = {
   getMeetingPrep: (event) => ipcRenderer.invoke('meeting:prep', event),
   renameMeeting: (id, title) => ipcRenderer.invoke('meetings:rename', id, title),
   askMeeting: (id, question) => ipcRenderer.invoke('meetings:ask', id, question),
+  setTranscriptionMode: (mode) => ipcRenderer.invoke('settings:transcriptionMode', mode),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   setSetting: (key, value) => ipcRenderer.invoke('settings:set', key, value),
   storageInfo: () => ipcRenderer.invoke('app:storageInfo'),

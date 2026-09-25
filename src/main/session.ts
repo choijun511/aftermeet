@@ -1,3 +1,4 @@
+import { effectiveTranscriptionMode } from '../shared/transcription-mode'
 // 录制会话编排:把 音频采集 → 实时转写 → 落盘存档 → 推送渲染进程 串起来,
 // 停止时持久化会议并调用 Claude 生成纪要/总结/待办。
 
@@ -334,8 +335,9 @@ export class Session {
       this.send('segment', { id: 'live', t: 0, text: '', final: false })
       upsertMeeting(meeting)
       checkCancelled(signal)
-      if (getSetting('twoPass', true)) {
-        const engine = getSetting('cloudAsr', qwenAvailable()) && qwenAvailable() ? 'qwen' : 'local'
+      const mode = effectiveTranscriptionMode({ twoPass: getSetting('twoPass', true), cloudAsr: getSetting('cloudAsr', true) }, qwenAvailable())
+      if (mode !== 'live') {
+        const engine = mode
         try { await this.fullTranscribe(meeting, { engine }, signal) } catch (error) {
           checkCancelled(signal)
           if (engine !== 'qwen') throw error

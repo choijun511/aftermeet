@@ -36,7 +36,10 @@ export function getSetting<T>(key: string, def: T): T {
   return key in s ? s[key] as T : def
 }
 export function setSetting(key: string, val: unknown): void {
-  writeJson(settingsPath(), { ...loadSettings(), [key]: val })
+  setSettings({ [key]: val })
+}
+export function setSettings(values: Record<string, unknown>): void {
+  writeJson(settingsPath(), { ...loadSettings(), ...values })
 }
 function load(): Meeting[] {
   return readJson(dbPath(), [], (v) => Array.isArray(v) && v.every((m) =>
