@@ -1112,3 +1112,8 @@ summary { cursor: pointer; font-weight: 600; }
 
 .plain-button.opt-tile { background: var(--tile); border: 2px solid transparent; padding: 11px 14px; }
 .plain-button.rec-here { background: #fff; color: var(--ink); padding: 7px 14px; }
+
+.maintenance-page { max-width: 1040px; margin: 0 auto; }
+.maintenance-entry { padding: 24px; margin: 20px 0; }
+.maintenance-entry h2 { font-size: 18px; margin: 0 0 16px; }
+.maintenance-entry .md { font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }

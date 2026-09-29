@@ -1,3 +1,4 @@
+import MaintenanceView from './views/MaintenanceView'
 import React from 'react'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import type {
@@ -14,15 +15,16 @@ import MeetingDetailView from './views/MeetingDetailView'
 import TodosView from './views/TodosView'
 import SettingsView from './views/SettingsView'
 import { fmtClock } from './util'
-import { IcHome, IcLibrary, IcCheckSquare, IcSettings, IcMic, IcSearch, IcStop } from './icons'
+import { IcDoc, IcHome, IcLibrary, IcCheckSquare, IcSettings, IcMic, IcSearch, IcStop } from './icons'
 
-type Route = 'home' | 'live' | 'library' | 'todos' | 'settings' | 'detail'
+type Route = 'home' | 'live' | 'library' | 'todos' | 'settings' | 'detail' | 'maintenance'
 
 const NAV: { key: Route; label: string; Icon: typeof IcHome }[] = [
   { key: 'home', label: '首页', Icon: IcHome },
   { key: 'library', label: '会议库', Icon: IcLibrary },
   { key: 'todos', label: '待办', Icon: IcCheckSquare },
-  { key: 'settings', label: '设置', Icon: IcSettings }
+  { key: 'settings', label: '设置', Icon: IcSettings },
+  { key: 'maintenance', label: '维护日志', Icon: IcDoc }
 ]
 
 export default function App(): React.JSX.Element {
@@ -218,6 +220,7 @@ export default function App(): React.JSX.Element {
       {route === 'todos' && (
         <TodosView meetings={meetings} onChanged={refreshMeetings} onOpen={openMeeting} />
       )}
+      {route === 'maintenance' && <MaintenanceView />}
       {route === 'settings' && (
         <SettingsView
           settings={settings}
