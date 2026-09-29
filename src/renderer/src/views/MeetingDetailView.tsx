@@ -1,3 +1,4 @@
+import CalendarLink from './CalendarLink'
 import Modal from '../components/Modal'
 import React from 'react'
 import { useEffect, useRef, useState } from 'react'
@@ -228,6 +229,7 @@ export default function MeetingDetailView({
         </button>
       </div>
 
+      <CalendarLink key={m.id} meeting={m} busy={busy} onChanged={onChanged} />
       <RecordingPlayer key={`audio-${m.id}`} meeting={m} status={status} />
 
       <ProcessingCard key={m.id} meeting={m} status={status} onChanged={onChanged} />

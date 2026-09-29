@@ -1,3 +1,4 @@
+import { withCalendar } from './calendar-link'
 import { transcriptionSettings, type TranscriptionMode } from '../shared/transcription-mode'
 import { setSettings } from './store'
 import { app, BrowserWindow, ipcMain, shell, systemPreferences, protocol } from 'electron'
@@ -228,6 +229,17 @@ function registerIpc(): void {
       upsertMeeting(m)
     }
     return { ok: true }
+  })
+  ipcMain.handle('meetings:linkCalendar', (_e, id: string, event) => {
+    try {
+      const m = getMeeting(id)
+      if (!m) return { ok: false, error: '会议不存在' }
+      if (session.getStatus().meetingId === id && !['idle', 'error'].includes(session.getStatus().state)) return { ok: false, error: '请等待这场会议处理结束后再关联日程' }
+      const updated = withCalendar(m, event)
+      upsertMeeting(updated)
+      send('meeting-updated', updated)
+      return { ok: true }
+    } catch (e) { return { ok: false, error: e instanceof Error ? e.message : '关联保存失败' } }
   })
   ipcMain.handle('meetings:rename', (_e, id: string, title: string) => {
     const m = getMeeting(id)

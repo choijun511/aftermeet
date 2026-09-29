@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { AfterMeetApi, StatusEvent, TranscriptSegment, Meeting } from '../shared/types'
 
 const api: AfterMeetApi = {
+  linkCalendar: (id, event) => ipcRenderer.invoke('meetings:linkCalendar', id, event),
   preparePlayback: (id) => ipcRenderer.invoke('playback:prepare', id),
   setPlaybackActive: (token, active) => ipcRenderer.invoke('playback:active', token, active),
   releasePlayback: (token) => ipcRenderer.invoke('playback:release', token),

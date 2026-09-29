@@ -159,6 +159,7 @@ export interface AudioPermissionProbe {
 }
 export type PlaybackInfo = { ok: true; url: string; token: string; durationSec: number } | { ok: false; error: string }
 export interface AfterMeetApi {
+  linkCalendar(id: string, event: CalendarEvent | null): Promise<{ ok: boolean; error?: string }>
   preparePlayback(id: string): Promise<PlaybackInfo>
   setPlaybackActive(token: string, active: boolean): Promise<boolean>
   releasePlayback(token: string): Promise<void>
