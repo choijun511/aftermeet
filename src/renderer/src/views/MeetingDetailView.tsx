@@ -437,7 +437,7 @@ export default function MeetingDetailView({
               <div className="tile" style={{ padding: 16, textAlign: 'center' }}>
                 <span className="spin" /> <span className="muted">正在搜索…</span>
               </div>
-            ) : candidates.length === 0 ? (
+            ) : feishuErr ? null : candidates.length === 0 ? (
               <div className="tile" style={{ padding: 14, fontSize: 12.5 }}>
                 <span className="muted">没搜到匹配的会议,试试下面粘贴妙记链接。</span>
               </div>

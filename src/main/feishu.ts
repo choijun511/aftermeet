@@ -1,3 +1,4 @@
+import { feishuError } from './feishu-error'
 // 飞书集成:通过 lark-cli 读取今日日历会议(用于「今日会议」展示与录制关联)。
 // 只读日历,不改任何飞书数据。lark-cli 会自动刷新 token;刷新失败则报错让 UI 提示重新授权。
 
@@ -46,14 +47,7 @@ function runLark(args: string[], timeoutMs = 20000): Promise<string> {
       clearTimeout(timer)
       if (code === 0) resolve(out)
       else {
-        let message = err.trim() || `lark-cli 退出码 ${code}`
-        try {
-          const failure = JSON.parse(out)
-          message = failure.error?.subtype === 'not_configured'
-            ? '飞书尚未配置或登录，请先连接飞书账号。'
-            : failure.error?.message || message
-        } catch { /* not JSON */ }
-        reject(new Error(message))
+        reject(new Error(feishuError(out, err, code)))
       }
     })
   })
@@ -166,9 +160,10 @@ function runLarkIn(args: string[], cwd: string, timeoutMs = 40000): Promise<stri
       clearTimeout(timer)
       reject(e)
     })
-    proc.on('exit', () => {
+    proc.on('close', (code) => {
       clearTimeout(timer)
-      resolve(out) // 即使非 0 也返回 stdout,由调用方解析 JSON 判断成败
+      if (code === 0) resolve(out)
+      else reject(new Error(feishuError(out, err, code)))
     })
   })
 }
@@ -214,6 +209,7 @@ export async function searchMeetingsRange(
   } catch {
     throw new Error('lark-cli 搜索返回无法解析')
   }
+  if ((parsed as { ok?: boolean }).ok === false) throw new Error(feishuError(raw, '', 0))
   const items = parsed?.data?.items ?? []
   return items
     .filter((it) => it.id)
