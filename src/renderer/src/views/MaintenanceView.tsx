@@ -5,10 +5,11 @@ const entries = log.split('\n## ').slice(1).map(section => {
   const newline = section.indexOf('\n')
   return { title: section.slice(0, newline), body: section.slice(newline + 1) }
 })
-export default function MaintenanceView(): React.JSX.Element {
+export default function MaintenanceView({ onBack }: { onBack: () => void }): React.JSX.Element {
   const [query, setQuery] = useState('')
   const matches = entries.filter(e => `${e.title}\n${e.body}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
   return <div className="content maintenance-page">
+    <button className="btn soft" onClick={onBack} style={{ marginBottom: 16 }}>返回设置</button>
     <h1 className="page-h">维护日志</h1>
     <p className="page-sub">每次改动的原因、内容与验证结果。随应用更新，与 GitHub 共用一份记录。</p>
     <label htmlFor="maintenance-search">搜索维护记录</label>

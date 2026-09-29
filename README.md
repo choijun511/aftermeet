@@ -218,4 +218,4 @@ AfterMeet 需要两个权限:
 
 ## 产品维护日志
 
-应用顶部「维护日志」可查看和搜索迭代历史。内容与 [产品维护日志](docs/MAINTENANCE_LOG.md) 共用同一文件；后续迭代默认同步更新，规范见 [AGENTS.md](AGENTS.md)。
+应用「设置 → 维护日志」可查看和搜索迭代历史。内容与 [产品维护日志](docs/MAINTENANCE_LOG.md) 共用同一文件；后续迭代默认同步更新，规范见 [AGENTS.md](AGENTS.md)。

@@ -7,13 +7,14 @@ import PermissionCard from './PermissionCard'
 import { IcMic, IcSparkles, IcCalendar, IcFolder, IcCheck, IcX } from '../icons'
 
 interface Props {
+  onOpenMaintenance: () => void
   settings: AppSettings
   hasKey: boolean
   onChange: (key: keyof AppSettings, value: boolean) => Promise<void>
   onModeChange: (mode: TranscriptionMode) => Promise<void>
 }
 
-export default function SettingsView({ settings, onChange, onModeChange }: Props): React.JSX.Element {
+export default function SettingsView({ settings, onChange, onModeChange, onOpenMaintenance }: Props): React.JSX.Element {
   const [feishu, setFeishu] = useState<{ available: boolean; authed: boolean } | null>(null)
   const [models, setModels] = useState<Awaited<ReturnType<AfterMeetApi['modelStatus']>> | null>(null)
   const [dir, setDir] = useState('')
@@ -41,6 +42,10 @@ export default function SettingsView({ settings, onChange, onModeChange }: Props
 
       {error && <p className="banner err" role="alert">{error}</p>}
       {saving && <p role="status">正在保存设置…</p>}
+      <div className="row" style={{ gap: 16, justifyContent: 'space-between', marginBottom: 18 }}>
+        <span className="muted">查看产品更新与修复记录</span>
+        <button className="btn soft" onClick={onOpenMaintenance}>维护日志</button>
+      </div>
       <PermissionCard />
       <div className="grid2">
         {/* 转写 */}

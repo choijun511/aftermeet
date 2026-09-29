@@ -15,7 +15,7 @@ import MeetingDetailView from './views/MeetingDetailView'
 import TodosView from './views/TodosView'
 import SettingsView from './views/SettingsView'
 import { fmtClock } from './util'
-import { IcDoc, IcHome, IcLibrary, IcCheckSquare, IcSettings, IcMic, IcSearch, IcStop } from './icons'
+import { IcHome, IcLibrary, IcCheckSquare, IcSettings, IcMic, IcSearch, IcStop } from './icons'
 
 type Route = 'home' | 'live' | 'library' | 'todos' | 'settings' | 'detail' | 'maintenance'
 
@@ -23,8 +23,7 @@ const NAV: { key: Route; label: string; Icon: typeof IcHome }[] = [
   { key: 'home', label: '首页', Icon: IcHome },
   { key: 'library', label: '会议库', Icon: IcLibrary },
   { key: 'todos', label: '待办', Icon: IcCheckSquare },
-  { key: 'settings', label: '设置', Icon: IcSettings },
-  { key: 'maintenance', label: '维护日志', Icon: IcDoc }
+  { key: 'settings', label: '设置', Icon: IcSettings }
 ]
 
 export default function App(): React.JSX.Element {
@@ -141,8 +140,8 @@ export default function App(): React.JSX.Element {
           {NAV.map(({ key, label, Icon }) => (
             <button
               key={key}
-              className={route === key ? 'active' : ''}
-              aria-current={route === key ? 'page' : undefined}
+              className={route === key || (key === 'settings' && route === 'maintenance') ? 'active' : ''}
+              aria-current={route === key || (key === 'settings' && route === 'maintenance') ? 'page' : undefined}
               onClick={() => setRoute(key)}
             >
               <Icon size={16} strokeWidth={route === key ? 2.4 : 2} />
@@ -220,9 +219,10 @@ export default function App(): React.JSX.Element {
       {route === 'todos' && (
         <TodosView meetings={meetings} onChanged={refreshMeetings} onOpen={openMeeting} />
       )}
-      {route === 'maintenance' && <MaintenanceView />}
+      {route === 'maintenance' && <MaintenanceView onBack={() => setRoute('settings')} />}
       {route === 'settings' && (
         <SettingsView
+          onOpenMaintenance={() => setRoute('maintenance')}
           settings={settings}
           hasKey={hasKey}
           onChange={async (k, v) => setSettings(await window.api.setSetting(k, v))}
