@@ -27,6 +27,8 @@ const NAV: { key: Route; label: string; Icon: typeof IcHome }[] = [
 ]
 
 export default function App(): React.JSX.Element {
+  const startLock = useRef(false)
+  const [startPending, setStartPending] = useState(false)
   const [route, setRoute] = useState<Route>('home')
   const [detailId, setDetailId] = useState<string | null>(null)
   const [status, setStatus] = useState<StatusEvent>({ state: 'idle', durationSec: 0, active: false })
@@ -34,6 +36,7 @@ export default function App(): React.JSX.Element {
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [hasKey, setHasKey] = useState(true)
   const [settings, setSettings] = useState<AppSettings>({
+    recordingReminder: true,
     cloudAsr: true,
     autoStart: true,
     twoPass: true,
@@ -53,14 +56,16 @@ export default function App(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
-    window.api.getState().then(setStatus)
+    let statusReceived = false
+    window.api.getState().then(s => { if (!statusReceived) setStatus(s) }).catch(() => setNotice('录制状态读取失败，请重新打开应用'))
     window.api.hasApiKey().then(setHasKey)
     window.api.getSettings().then(setSettings).catch((e) => setStorageError(String(e)))
     refreshMeetings()
 
     const offStatus = window.api.onStatus((s) => {
+      statusReceived = true
       setStatus(s)
-      if (s.state === 'idle') refreshMeetings()
+      if (s.state === 'idle' || s.state === 'starting') refreshMeetings()
     })
     const offSeg = window.api.onSegment((seg) =>
       setSegments((prev) => {
@@ -103,14 +108,20 @@ export default function App(): React.JSX.Element {
   const totalTodos = meetings.reduce((n, m) => n + m.todos.filter((t) => !t.done).length, 0)
 
   const startRecording = async (title = '', calendar?: CalendarEvent | null): Promise<void> => {
-    const result = await window.api.startRecording(title, calendar)
-    if (!result.ok) { setNotice(result.error || '录制启动失败'); return }
-    setSegments([])
-    setRoute('live')
+    if (startLock.current || !['idle', 'error'].includes(status.state)) return
+    startLock.current = true; setStartPending(true); setSegments([])
+    try {
+      const result = await window.api.startRecording(title, calendar)
+      if (!result.ok) { setNotice(result.error || '录制启动失败'); return }
+      setRoute('live')
+    } catch (e) { setNotice(e instanceof Error ? e.message : '录制启动失败') }
+    finally { startLock.current = false; setStartPending(false) }
   }
   const stopRecording = async (): Promise<void> => {
-    const result = await window.api.stopRecording()
-    if (!result.ok) setNotice(result.error || '录制处理失败')
+    try {
+      const result = await window.api.stopRecording()
+      if (!result.ok) setNotice(result.error || '录制处理失败')
+    } catch (e) { setNotice(e instanceof Error ? e.message : '停止录制失败') }
   }
 
   const openMeeting = (id: string): void => {
@@ -163,19 +174,14 @@ export default function App(): React.JSX.Element {
             <span>搜索</span>
             <span className="kbd">⌘K</span>
           </button>
-          {recording ? (
-            <button className="btn coral" onClick={() => setRoute('live')}>
-              <span className="rec-dot" style={{ animation: 'rec-pulse 1.6s ease-in-out infinite' }}>
-                ●
-              </span>
-              <span className="tnum">{fmtClock(status.durationSec)}</span>
-            </button>
-          ) : (
-            <button className="btn dark" onClick={goRecord} disabled={busy}>
-              <span className="rec-dot">●</span>
-              开始录制
-            </button>
-          )}
+          <button className={`btn ${recording ? 'coral' : 'dark'}`}
+            disabled={startPending || status.state === 'starting' || busy}
+            onClick={goRecord} title={recording ? '查看当前录制' : undefined}>
+            <span aria-hidden="true">{recording ? '●' : busy || startPending ? '◌' : '●'}</span>
+            {startPending || status.state === 'starting' ? '正在启动录制…' : status.state === 'recording'
+              ? <>录制中 <span className="tnum">{fmtClock(status.durationSec)}</span></>
+              : status.state === 'transcribing' ? '正在保存与转写…' : status.state === 'summarizing' ? '正在生成纪要…' : '开始录制'}
+          </button>
         </div>
       </header>
 
@@ -201,7 +207,8 @@ export default function App(): React.JSX.Element {
           onStart={startRecording}
           onStop={stopRecording}
           onAssociate={async (mid, ev) => {
-            await window.api.renameMeeting(mid, ev.title)
+            const result = await window.api.linkCalendar(mid, ev)
+            if (!result.ok) setNotice(result.error || '关联日程失败')
             refreshMeetings()
           }}
           onOpen={openMeeting}
@@ -243,7 +250,7 @@ export default function App(): React.JSX.Element {
         <div className="minibar-wrap">
           <div className="minibar">
             <span className="dot" />
-            <span style={{ fontWeight: 700, fontSize: 13 }}>录制中</span>
+            <span style={{ fontWeight: 700, fontSize: 13 }}>{status.state === 'starting' ? '正在启动录制' : '录制中'}</span>
             <span className="tnum muted" style={{ fontSize: 12.5 }}>
               {fmtClock(status.durationSec)}
             </span>

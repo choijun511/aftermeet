@@ -1,3 +1,4 @@
+import { RecordingReminder } from './recording-reminder'
 import { withCalendar } from './calendar-link'
 import { transcriptionSettings, type TranscriptionMode } from '../shared/transcription-mode'
 import { setSettings } from './store'
@@ -36,6 +37,7 @@ import type { AppSettings, CalendarEvent } from '../shared/types'
 
 function currentSettings(): AppSettings {
   return {
+    recordingReminder: getSetting('recordingReminder', true),
     cloudAsr: getSetting('cloudAsr', qwenAvailable()),
     autoStart: getSetting('autoStart', true),
     twoPass: getSetting('twoPass', true),
@@ -107,6 +109,7 @@ loadEnv()
 let win: BrowserWindow | null = null
 let session: Session
 let autoStart: AutoStart
+let recordingReminder: RecordingReminder
 
 function send(channel: string, payload: unknown): void {
   // 窗口/ webContents 可能已销毁(用户关窗但 app 仍在 macOS 后台运行,而录制定时器还在跑)
@@ -234,7 +237,7 @@ function registerIpc(): void {
     try {
       const m = getMeeting(id)
       if (!m) return { ok: false, error: '会议不存在' }
-      if (session.getStatus().meetingId === id && !['idle', 'error'].includes(session.getStatus().state)) return { ok: false, error: '请等待这场会议处理结束后再关联日程' }
+      if (session.getStatus().meetingId === id && !['idle', 'error'].includes(session.getStatus().state)) return session.linkCalendar(id, event)
       const updated = withCalendar(m, event)
       upsertMeeting(updated)
       send('meeting-updated', updated)
@@ -309,8 +312,9 @@ function registerIpc(): void {
   })
   ipcMain.handle('settings:get', () => currentSettings())
   ipcMain.handle('settings:set', (_e, key: keyof AppSettings, value: boolean) => {
-    if (!['cloudAsr', 'autoStart', 'twoPass', 'autoMinutes'].includes(key) || typeof value !== 'boolean') throw new Error('设置参数无效')
+    if (!['cloudAsr', 'autoStart', 'twoPass', 'autoMinutes', 'recordingReminder'].includes(key) || typeof value !== 'boolean') throw new Error('设置参数无效')
     setSetting(key, value)
+    if (key === 'recordingReminder') recordingReminder.setEnabled(value)
     if (key === 'autoStart') autoStart.setEnabled(value)
     return currentSettings()
   })
@@ -348,6 +352,11 @@ app.whenReady().then(() => {
     console.error('[recover] 失败:', e instanceof Error ? e.message : e)
     storageWarnings.push(e instanceof Error ? e.message : String(e))
   }
+  recordingReminder = new RecordingReminder(session, () => {
+    if (!win || win.isDestroyed()) createWindow()
+    win?.show(); win?.focus()
+  }, msg => send('notice', msg))
+  try { recordingReminder.setEnabled(getSetting('recordingReminder', true)) } catch (e) { console.warn('[reminder]', e) }
   registerIpc()
   createWindow()
   // 窗口加载完再提示,确保渲染端已挂上监听
@@ -359,10 +368,13 @@ app.whenReady().then(() => {
   }
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (!win || win.isDestroyed()) createWindow()
+    else win.show()
   })
 })
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
+
+app.on('before-quit', () => recordingReminder?.stop())

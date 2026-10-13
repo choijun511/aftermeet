@@ -112,6 +112,8 @@ export default function SettingsView({ settings, onChange, onModeChange, onOpenM
             </div>
             <div className="card-title">自动化</div>
           </div>
+          <ToggleRow title="桌面录音提醒" desc="音频设备持续使用时弹出提醒，点击才录音。仅检测设备占用，不读取声音；音乐也可能触发。自动录制开启时不重复提醒。"
+            on={settings.recordingReminder} disabled={saving} onToggle={() => void save(() => onChange('recordingReminder', !settings.recordingReminder))} />
           <ToggleRow
             title="自动录制"
             desc="检测到会议音频活跃时,自动开始录制"

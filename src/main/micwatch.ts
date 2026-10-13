@@ -10,8 +10,10 @@ export class MicWatcher {
   private onActive: () => void
   private onIdle: () => void
   private buf = ''
+  private audioActivity: boolean
 
-  constructor(opts: { onActive: () => void; onIdle: () => void }) {
+  constructor(opts: { audioActivity?: boolean; onActive: () => void; onIdle: () => void }) {
+    this.audioActivity = !!opts.audioActivity
     this.onActive = opts.onActive
     this.onIdle = opts.onIdle
   }
@@ -28,7 +30,8 @@ export class MicWatcher {
     } catch {
       /* */
     }
-    const proc = spawn(bin, [], { stdio: ['ignore', 'pipe', 'pipe'] })
+    this.buf = ''
+    const proc = spawn(bin, this.audioActivity ? ['--audio-activity'] : [], { stdio: ['ignore', 'pipe', 'pipe'] })
     this.proc = proc
     proc.stdout.on('data', (d: Buffer) => {
       this.buf += d.toString()
@@ -40,9 +43,9 @@ export class MicWatcher {
         else if (line === 'idle') this.onIdle()
       }
     })
-    proc.on('exit', () => {
-      this.proc = null
-    })
+    proc.stderr.on('data', () => { /* drain native diagnostics */ })
+    proc.on('error', (error) => { console.warn('[micwatch]', error.message); if (this.proc === proc) this.proc = null })
+    proc.on('exit', () => { if (this.proc === proc) this.proc = null })
   }
 
   stop(): void {

@@ -45,7 +45,7 @@ export default function CalendarLink({ meeting, busy, onChanged }: { meeting: Me
     </div>
     {open && <div className="modal-scrim" onClick={() => !saving && setOpen(false)}><Modal label="关联飞书日历日程" onClose={() => !saving && setOpen(false)}>
       <div className="row" style={{ justifyContent: 'space-between', marginBottom: 16 }}><h2 style={{ margin: 0 }}>关联飞书日历日程</h2><button className="btn soft" disabled={saving} onClick={() => setOpen(false)}>关闭</button></div>
-      <p className="muted">选择这段录音对应的日程，仅保存关联，不修改转写、纪要或飞书日历。</p>
+      <p className="muted">选择这段录音对应的日程，关联后会议名称立即采用日程名称；转写、纪要和飞书日历保持不变。</p>
       <div className="row" style={{ gap: 12, marginBottom: 16 }}><label htmlFor="calendar-link-date">日程日期</label><input id="calendar-link-date" type="date" className="txt-input" style={{ width: 'auto' }} value={date} disabled={saving} onChange={e => setDate(e.target.value)} /><button className="btn soft" disabled={loading || saving || !date} onClick={() => setRetry(r => r+1)}>刷新</button></div>
       {error && <p className="banner err" role="alert">{error}</p>}
       {loading ? <p role="status">正在读取日历…</p> : !error && <div style={{ maxHeight: 320, overflowY: 'auto', display: 'grid', gap: 10 }}>

@@ -136,6 +136,7 @@ export interface StatusEvent {
 
 /** 应用设置(持久化在 settings.json) */
 export interface AppSettings {
+  recordingReminder: boolean
   cloudAsr: boolean
   /** 自动起录(麦克风活跃即开录) */
   autoStart: boolean

@@ -12,11 +12,11 @@ import CoreAudio
 
 setvbuf(stdout, nil, _IONBF, 0) // 关闭缓冲,保证每行即时送达
 
-func defaultInputDevice() -> AudioDeviceID {
+func defaultDevice(_ output: Bool = false) -> AudioDeviceID {
   var id = AudioDeviceID(0)
   var size = UInt32(MemoryLayout<AudioDeviceID>.size)
   var addr = AudioObjectPropertyAddress(
-    mSelector: kAudioHardwarePropertyDefaultInputDevice,
+    mSelector: output ? kAudioHardwarePropertyDefaultOutputDevice : kAudioHardwarePropertyDefaultInputDevice,
     mScope: kAudioObjectPropertyScopeGlobal,
     mElement: kAudioObjectPropertyElementMain
   )
@@ -41,8 +41,8 @@ var last: Bool? = nil
 print("watching") // 启动握手
 while true {
   if getppid() == 1 { exit(0) } // 父进程已退出,避免僵尸
-  let dev = defaultInputDevice()
-  let active = isRunningSomewhere(dev)
+  let dev = defaultDevice()
+  let active = isRunningSomewhere(dev) || (CommandLine.arguments.contains("--audio-activity") && isRunningSomewhere(defaultDevice(true)))
   if active != last {
     last = active
     print(active ? "active" : "idle")

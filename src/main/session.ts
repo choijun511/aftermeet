@@ -1,3 +1,4 @@
+import { withCalendar } from './calendar-link'
 import { effectiveTranscriptionMode } from '../shared/transcription-mode'
 // 录制会话编排:把 音频采集 → 实时转写 → 落盘存档 → 推送渲染进程 串起来,
 // 停止时持久化会议并调用 Claude 生成纪要/总结/待办。
@@ -60,6 +61,15 @@ export class Session {
 
   constructor(send: Send) {
     this.send = send
+  }
+
+  linkCalendar(id: string, event: CalendarEvent | null): { ok: boolean; error?: string } {
+    if (!this.meeting || this.meeting.id !== id || this.stopping || !['starting', 'recording'].includes(this.state)) return { ok: false, error: '请等待会议处理完成后再关联' }
+    const updated = withCalendar(this.meeting, event)
+    upsertMeeting(updated)
+    this.meeting = updated
+    this.send('meeting-updated', updated)
+    return { ok: true }
   }
 
   getStatus(): StatusEvent {
@@ -311,6 +321,7 @@ export class Session {
     if (this.timer) clearInterval(this.timer)
     this.timer = null
     this.state = 'transcribing'
+    this.emitStatus('正在结束录制并保存音频…')
     this.processingId = meeting.id
     this.processingAbort = new AbortController()
     const signal = this.processingAbort.signal
