@@ -118,6 +118,18 @@ function send(channel: string, payload: unknown): void {
   }
 }
 
+/** 只有应用自身页面（开发服务器同源，或打包后的 renderer/index.html）允许在主窗口中加载。 */
+function isAppUrl(url: string): boolean {
+  try {
+    const target = new URL(url)
+    const devUrl = process.env['ELECTRON_RENDERER_URL']
+    if (devUrl) return target.origin === new URL(devUrl).origin
+    return target.protocol === 'file:' && decodeURIComponent(target.pathname) === join(__dirname, '../renderer/index.html')
+  } catch {
+    return false
+  }
+}
+
 function createWindow(): void {
   win = new BrowserWindow({
     width: 1320,
@@ -138,6 +150,24 @@ function createWindow(): void {
   } else {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  // 纪要等内容里的链接不得让主窗口离开应用页面（否则外部网页会拿到 preload 暴露的 window.api）。
+  // http(s) 链接交给系统浏览器打开，其它协议一律拒绝。
+  const openExternally = (url: string): void => {
+    if (/^https?:\/\//i.test(url)) void shell.openExternal(url).catch(() => {})
+  }
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    openExternally(url)
+    return { action: 'deny' }
+  })
+  win.webContents.on('will-navigate', (event, url) => {
+    if (isAppUrl(url)) return
+    event.preventDefault()
+    openExternally(url)
+  })
+  win.webContents.on('will-redirect', (event, url) => {
+    if (!isAppUrl(url)) event.preventDefault()
+  })
 
   const playbackOwner = win.webContents.id
   win.webContents.on('destroyed', () => releasePlaybackOwner(playbackOwner))
@@ -214,8 +244,9 @@ function registerIpc(): void {
   ipcMain.handle('meetings:list', () => listMeetings())
   ipcMain.handle('meetings:get', (_e, id: string) => getMeeting(id))
   ipcMain.handle('meetings:delete', (_e, id: string) => {
-    if (session.getStatus().state !== 'idle') return { ok: false, error: '请等待录制或处理结束后删除' }
-    deleteMeeting(id)
+    if (!session.isIdle()) return { ok: false, error: '请等待录制或处理结束后删除' }
+    const { failed } = deleteMeeting(id)
+    if (failed.length) return { ok: true, error: `会议已删除，但有 ${failed.length} 个本地文件未能移除：${failed.join('、')}` }
     return { ok: true }
   })
   ipcMain.handle('meetings:retranscribe', (_e, id: string, options) => audioProbeRunning() ? { ok: false, error: '系统音频测试中，请稍后处理' } : session.retranscribe(id, options))
@@ -225,7 +256,7 @@ function registerIpc(): void {
   ipcMain.handle('meetings:toggleTodo', (_e, meetingId: string, todoId: string) => {
     const m = getMeeting(meetingId)
     if (!m) return { ok: false }
-    if (session.getStatus().meetingId === meetingId && session.getStatus().state !== 'idle') return { ok: false }
+    if (session.getStatus().meetingId === meetingId && !session.isIdle()) return { ok: false }
     const todo = m.todos.find((t) => t.id === todoId)
     if (todo) {
       todo.done = !todo.done
@@ -247,7 +278,7 @@ function registerIpc(): void {
   ipcMain.handle('meetings:rename', (_e, id: string, title: string) => {
     const m = getMeeting(id)
     if (!m) return { ok: false }
-    if (session.getStatus().meetingId === id && session.getStatus().state !== 'idle') return { ok: false }
+    if (session.getStatus().meetingId === id && !session.isIdle()) return { ok: false }
     m.title = title.trim() || m.title
     upsertMeeting(m)
     send('meeting-updated', m)

@@ -2,8 +2,8 @@
 // 不引入 sqlite(避免 Electron 原生模块重编译),用 JSON 文件足够。
 
 import { app } from 'electron'
-import { join } from 'path'
-import { existsSync, mkdirSync } from 'fs'
+import { basename, join, resolve, sep } from 'path'
+import { existsSync, mkdirSync, readdirSync, rmSync } from 'fs'
 import { readJson, writeJson } from './atomic-json'
 import type { Meeting } from '../shared/types'
 
@@ -65,8 +65,32 @@ export function upsertMeeting(m: Meeting): void {
   writeJson(dbPath(), all)
 }
 
-export function deleteMeeting(id: string): void {
-  const all = load().filter((m) => m.id !== id)
+/**
+ * 删除会议记录及其本地文件：录音、会中转写、转写断点与转写前快照。
+ * 界面承诺「不可恢复」，因此 meetings.json.bak 也会刷新为不含该会议的版本。
+ * 返回未能删除的文件（记录本身已删除），供界面提示。
+ */
+export function deleteMeeting(id: string): { failed: string[] } {
+  const all = load()
+  const target = all.find((m) => m.id === id)
+  const remaining = all.filter((m) => m.id !== id)
   writeJson(join(dataDir(), 'deleted-meetings.json'), [...new Set([...deletedMeetingIds(), id])])
-  writeJson(dbPath(), all)
+  writeJson(dbPath(), remaining)
+  writeJson(dbPath(), remaining) // 第二次写入把 .bak 也替换成不含该会议的版本
+
+  const files = new Set<string>()
+  const transcripts = transcriptsDir()
+  // 只删除应用数据目录内的文件，避免异常记录指向其它位置时误删。
+  for (const path of [target?.audioPath, target?.transcriptPath, join(transcripts, `audio-${id}.pcm`), join(transcripts, `会中转写-${id}.txt`)]) {
+    if (path && resolve(path).startsWith(resolve(dataDir()) + sep)) files.add(resolve(path))
+  }
+  const processing = join(dataDir(), 'processing')
+  if (/^m_[a-zA-Z0-9_-]+$/.test(id) && existsSync(processing)) {
+    for (const name of readdirSync(processing)) if (name.startsWith(`${id}-`)) files.add(join(processing, name))
+  }
+  const failed: string[] = []
+  for (const path of files) {
+    try { rmSync(path, { force: true }) } catch { failed.push(basename(path)) }
+  }
+  return { failed }
 }

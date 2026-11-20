@@ -46,6 +46,16 @@ export default function App(): React.JSX.Element {
   const [notice, setNotice] = useState<string | null>(null)
   const [librarySearch, setLibrarySearch] = useState('')
   const librarySearchFocus = useRef(false)
+  // 当前字幕所属的会议。自动起录、录音提醒起录不经过本页的 startRecording，
+  // 因此以状态里的 meetingId 变化为准清空上一场字幕（新会议的字幕编号会从 s_1 重新开始）。
+  const liveMeetingId = useRef<string | undefined>(undefined)
+  const trackLiveMeeting = useCallback((s: StatusEvent) => {
+    if ((s.state !== 'starting' && s.state !== 'recording') || !s.meetingId) return
+    if (s.meetingId !== liveMeetingId.current) {
+      liveMeetingId.current = s.meetingId
+      setSegments([])
+    }
+  }, [])
 
   const recording = status.state === 'recording' || status.state === 'starting'
   const busy = status.state === 'transcribing' || status.state === 'summarizing'
@@ -57,13 +67,14 @@ export default function App(): React.JSX.Element {
 
   useEffect(() => {
     let statusReceived = false
-    window.api.getState().then(s => { if (!statusReceived) setStatus(s) }).catch(() => setNotice('录制状态读取失败，请重新打开应用'))
+    window.api.getState().then(s => { if (!statusReceived) { trackLiveMeeting(s); setStatus(s) } }).catch(() => setNotice('录制状态读取失败，请重新打开应用'))
     window.api.hasApiKey().then(setHasKey)
     window.api.getSettings().then(setSettings).catch((e) => setStorageError(String(e)))
     refreshMeetings()
 
     const offStatus = window.api.onStatus((s) => {
       statusReceived = true
+      trackLiveMeeting(s)
       setStatus(s)
       if (s.state === 'idle' || s.state === 'starting') refreshMeetings()
     })

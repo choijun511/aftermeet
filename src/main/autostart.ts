@@ -14,7 +14,7 @@ export class AutoStart {
   private session: Session
   private watcher: MicWatcher | null = null
   private stopTimer: NodeJS.Timeout | null = null
-  private autoStarted = false
+  private autoMeetingId: string | null = null
   private notify: (msg: string) => void
 
   constructor(session: Session, notify: (msg: string) => void) {
@@ -43,28 +43,35 @@ export class AutoStart {
   private handleActive(): void {
     if (audioProbeRunning() || playbackActive()) return
     this.clearStopTimer()
-    const st = this.session.getStatus()
-    if (st.state === 'idle') {
-      this.autoStarted = true
+    if (!this.session.isIdle()) return
+    const result = this.session.start('') // 空标题 → 按时间自动命名
+    if (result.ok && result.meetingId) {
+      this.autoMeetingId = result.meetingId
       this.notify('检测到会议开始,已自动开始录制')
-      this.session.start('') // 空标题 → 按时间自动命名
+    } else {
+      this.notify(`检测到会议开始,但自动录制启动失败:${result.error || '未知错误'}`)
     }
   }
 
-  private handleIdle(): void {
+  /** 只有本控制器自动开始、且仍在录制的那一场会议才允许被自动停止。 */
+  private ownsCurrentRecording(): boolean {
     const st = this.session.getStatus()
-    const recording = st.state === 'recording' || st.state === 'starting'
-    if (recording && this.autoStarted && !this.stopTimer) {
-      this.stopTimer = setTimeout(() => {
-        this.stopTimer = null
-        const cur = this.session.getStatus()
-        if (cur.state === 'recording' && this.autoStarted) {
-          this.autoStarted = false
-          this.notify('会议结束,已自动停止并生成纪要')
-          void this.session.stop()
-        }
-      }, STOP_GRACE_MS)
+    if (!this.autoMeetingId || st.meetingId !== this.autoMeetingId) {
+      this.autoMeetingId = null // 用户已手动停止,或当前是另一场(手动开始的)会议
+      return false
     }
+    return st.state === 'recording' || st.state === 'starting'
+  }
+
+  private handleIdle(): void {
+    if (!this.ownsCurrentRecording() || this.stopTimer) return
+    this.stopTimer = setTimeout(() => {
+      this.stopTimer = null
+      if (this.session.getStatus().state !== 'recording' || !this.ownsCurrentRecording()) return
+      this.autoMeetingId = null
+      this.notify('会议结束,已自动停止并生成纪要')
+      void this.session.stop()
+    }, STOP_GRACE_MS)
   }
 
   private clearStopTimer(): void {

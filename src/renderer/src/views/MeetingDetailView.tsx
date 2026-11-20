@@ -98,9 +98,10 @@ export default function MeetingDetailView({
     } catch (e) { setGenerationError(e instanceof Error ? e.message : '生成失败') } finally { setRegenerating(false) }
   }
   const del = async (): Promise<void> => {
-    if (!confirm(`删除会议「${m.title}」?此操作不可恢复。`)) return
+    if (!confirm(`删除会议「${m.title}」?录音、转写和纪要都会从本机删除，此操作不可恢复。`)) return
     const result = await window.api.deleteMeeting(m.id)
-    if (!result.ok) { setGenerationError('请等待当前录制或处理完成后删除'); return }
+    if (!result.ok) { setGenerationError(result.error || '请等待当前录制或处理完成后删除'); return }
+    if (result.error) alert(result.error)
     onChanged()
     onBack()
   }
