@@ -72,6 +72,11 @@ export class Session {
     return { ok: true }
   }
 
+  /** 'error' 只表示上次启动失败，没有任何录制或处理在进行，应视同空闲。 */
+  isIdle(): boolean {
+    return ['idle', 'error'].includes(this.state) && !this.meeting && !this.processingId && !this.stopping
+  }
+
   getStatus(): StatusEvent {
     return {
       state: this.state,
@@ -402,7 +407,7 @@ export class Session {
   }
 
   async retranscribe(id: string, options: RetranscribeOptions): Promise<{ ok: boolean; error?: string }> {
-    if (this.state !== 'idle' || this.meeting || this.processingId) return { ok: false, error: '请等待当前录制或处理完成' }
+    if (!this.isIdle()) return { ok: false, error: '请等待当前录制或处理完成' }
     if (!options || !['local', 'qwen'].includes(options.engine)) return { ok: false, error: '请选择转写方式' }
     if (options.engine === 'qwen' && !qwenAvailable()) return { ok: false, error: '未配置 Qwen 密钥，请选择本地 Whisper' }
     const meeting = getMeeting(id)
@@ -428,7 +433,7 @@ export class Session {
 
   /** 对已有会议重新生成纪要(用其 notesSource 对应的转写) */
   async regenerate(id: string, mode: AnalysisMode = 'standard'): Promise<{ ok: boolean; error?: string }> {
-    if (this.state !== 'idle' || this.meeting) return { ok: false, error: '请等待当前录制或处理完成' }
+    if (!this.isIdle()) return { ok: false, error: '请等待当前录制或处理完成' }
     const meeting = getMeeting(id)
     if (!meeting) return { ok: false, error: '会议不存在' }
     const text =
@@ -486,7 +491,7 @@ export class Session {
     feishuTranscript: string,
     feishuTitle?: string
   ): Promise<{ ok: boolean; error?: string }> {
-    if (this.state !== 'idle' || this.processingId || this.meeting) return { ok: false, error: '请等待当前处理完成' }
+    if (!this.isIdle()) return { ok: false, error: '请等待当前处理完成' }
     const meeting = getMeeting(id)
     if (!meeting) return { ok: false, error: '会议不存在' }
     this.processingId = id; this.processingAbort = new AbortController()
@@ -502,7 +507,7 @@ export class Session {
 
   /** 切回本地录制转写生成纪要 */
   async useLocalNotes(id: string): Promise<{ ok: boolean; error?: string }> {
-    if (this.state !== 'idle' || this.processingId || this.meeting) return { ok: false, error: '请等待当前处理完成' }
+    if (!this.isIdle()) return { ok: false, error: '请等待当前处理完成' }
     const meeting = getMeeting(id)
     if (!meeting) return { ok: false, error: '会议不存在' }
     this.processingId = id; this.processingAbort = new AbortController()

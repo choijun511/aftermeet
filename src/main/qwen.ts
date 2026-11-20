@@ -110,7 +110,8 @@ export async function transcribeQwenPcm(pcmPath: string, progress: (message: str
       checkCancelled(signal)
       const offset = index * chunkBytes
       const append = (result: CloudTranscript): void => {
-        texts.push(result.text); sentences.push(...result.sentences); warnings.push(...result.warnings)
+        if (result.text.trim()) texts.push(result.text)
+        sentences.push(...result.sentences); warnings.push(...result.warnings)
       }
       if (chunks[index]?.state === 'done' && chunks[index].result) {
         progress(`已恢复完成的转写（${index + 1}/${count}）`)
@@ -196,8 +197,12 @@ export async function transcribeQwenPcm(pcmPath: string, progress: (message: str
         }
         progress(`Qwen 第 ${index + 1}/${count} 段未返回文字，正在本地补转…`)
         const local = (await fallback(pcm, index)).trim()
-        if (!local) throw new Error(`第 ${index + 1}/${count} 段云端与本地均未返回文字，不能确认是否静音；保留原稿`)
-        chunkResult = {
+        // 单段无字（常见于结尾几秒或茶歇静音）不应让整场失败；全部分段都无字时在循环后统一报错。
+        if (!local) chunkResult = {
+          text: '', sentences: [], model: 'whisper-large-v3-turbo',
+          warnings: [`第 ${index + 1}/${count} 段（${offset / SAMPLE_BYTES_PER_SECOND} 秒起）云端与本地均未识别出文字，已按静音跳过`]
+        }
+        else chunkResult = {
           text: `【第 ${index + 1} 段 · 本地补转，未区分说话人】\n${local}`, sentences: [],
           model: 'whisper-large-v3-turbo', warnings: [`第 ${index + 1}/${count} 段云端未返回文字，已由本地 Whisper 补转`]
         }
@@ -206,6 +211,7 @@ export async function transcribeQwenPcm(pcmPath: string, progress: (message: str
       chunks[index] = { state: 'done', result: chunkResult }; save()
       append(chunkResult)
     }
+    if (!texts.length) throw new Error('所有分段云端与本地均未返回文字，不能确认是否静音；保留原稿')
     return { text: texts.join('\n\n'), sentences, model: warnings.length ? `${qwenModel()} + whisper-large-v3-turbo` : qwenModel(), warnings }
   } finally { await file.close() }
 }

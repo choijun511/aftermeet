@@ -63,7 +63,8 @@ test('recovery finds audio without any subtitles, is idempotent and respects del
   assert.equal(m.processing?.state, 'paused')
   assert.equal(recoverOrphans().length, 0); assert.equal(listMeetings().length, 1)
   deleteMeeting(m.id); recoverOrphans(); assert.equal(listMeetings().length, 0)
-  assert(existsSync(path))
+  assert(!existsSync(path), 'deleting a meeting removes its recording')
+  pcm(10, path); recoverOrphans(); assert.equal(listMeetings().length, 0, 'tombstone still blocks resurrection')
 })
 
 test('legacy and pre-registered recordings resume instead of becoming duplicates; long timestamps survive', () => {

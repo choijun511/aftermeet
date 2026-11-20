@@ -208,7 +208,7 @@ export interface AfterMeetApi {
   getState(): Promise<StatusEvent>
   listMeetings(): Promise<Meeting[]>
   getMeeting(id: string): Promise<Meeting | null>
-  deleteMeeting(id: string): Promise<{ ok: boolean }>
+  deleteMeeting(id: string): Promise<{ ok: boolean; error?: string }>
   retranscribe(id: string, options: RetranscribeOptions): Promise<{ ok: boolean; error?: string }>
   cancelProcessing(id: string): Promise<{ ok: boolean; error?: string }>
   regenerate(id: string, mode?: 'standard' | 'deep'): Promise<{ ok: boolean; error?: string }>

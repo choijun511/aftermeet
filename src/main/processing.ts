@@ -81,10 +81,15 @@ export async function transcribeSavedAudio(
     if (options.engine === 'qwen') return await transcribeQwenPcm(meeting.audioPath, setProgress, local,
       { chunks: job.chunks, save, signal, allowResubmit: options.allowResubmit })
     const texts: string[] = []
+    const warnings: string[] = []
+    const collect = (result: { text: string; warnings: string[] }): void => {
+      if (result.text.trim()) texts.push(result.text)
+      warnings.push(...result.warnings)
+    }
     for (let index = 0; index < total; index++) {
       checkCancelled(signal)
       if (job.chunks[index]?.state === 'done' && job.chunks[index].result) {
-        texts.push(job.chunks[index].result!.text); continue
+        collect(job.chunks[index].result!); continue
       }
       setProgress(`本地 Whisper 正在转写（${index + 1}/${total}）…`)
       const offset = index * chunkBytes
@@ -96,11 +101,14 @@ export async function transcribeSavedAudio(
         read += got.bytesRead
       }
       const text = await local(pcm)
-      if (!text) throw new Error(`第 ${index + 1}/${total} 段未识别出文字，无法确认是否静音；请核对音频，原稿已保留`)
-      job.chunks[index] = { state: 'done', result: { text, sentences: [], model: 'whisper-large-v3-turbo', warnings: [] } }
-      save(); texts.push(text)
+      // 单段无字按静音跳过并留下提示；所有分段都无字时才视为失败，保留原稿。
+      const chunkWarnings = text ? [] : [`第 ${index + 1}/${total} 段（${index * QWEN_CHUNK_SECONDS} 秒起）未识别出文字，已按静音跳过`]
+      const result = { text, sentences: [], model: 'whisper-large-v3-turbo', warnings: chunkWarnings }
+      job.chunks[index] = { state: 'done', result }
+      save(); collect(result)
     }
-    return { text: texts.join('\n\n'), sentences: [], model: 'whisper-large-v3-turbo', warnings: [] }
+    if (!texts.length) throw new Error('所有分段均未识别出文字，无法确认是否静音；请核对音频，原稿已保留')
+    return { text: texts.join('\n\n'), sentences: [], model: 'whisper-large-v3-turbo', warnings }
   } finally { await handle.close() }
 }
 
